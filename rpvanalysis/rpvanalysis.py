@@ -94,16 +94,20 @@ class analyzer:
                                                          n_toys)
             self.dressed_mass_df[jet_i]=pd.DataFrame(result,index=self.df.index,columns=['jet_dressed_m_'+str(j) for j in range(n_toys)])
 
-    def get_region_index(self,region_string,jet_i=0):
-        #Given a region string and jet number, return index of jets in that region
+    def get_region_index(self,region_string):
+        #Given a region string, return index of jets in that region
+        #for bM and bU regions, return list of indices, corresponding to each jet
         mask = None
-
+        njet=0
         if region_string.startswith('3j'):
             mask = self.df['njet']==3
+            njet=3
         elif region_string.startswith('4j'):
             mask = self.df['njet']==4
+            njet=4
         elif region_string.startswith('5j'):
             mask = self.df['njet']>=5
+            njet=4
         else:
             print('Error: region name %s is invalid. Must start with 3j,4j, or 5j'%region_string)
             return np.array([])
@@ -122,14 +126,23 @@ class analyzer:
             mask &= self.df['nbjet'] == 0
         elif 'b1' in region_string:
             mask &= self.df['nbjet'] >= 1
-            
-        if jet_i == 0 and ('bU' in region_string or 'bM' in region_string):
-            print ('Error: for b-matched or non-b-matched regions, must specify jet index')
-            return np.array([])
-
-        if 'bU' in region_string:
-            mask &= self.df['jet_bmatched_'+str(jet_i)] == 0
-        elif 'bM' in region_string:
-            mask &= self.df['jet_bmatched_'+str(jet_i)] == 1
+    
+        if (not 'bU' in region_string) and (not 'bM' in region_string):
+            return self.df[mask].index
         
-        return self.df[mask].index
+        masks = [ mask for _ in range(njet)]
+        if 'bU' in region_string:
+            for i in range(njet):
+                jet_i = i+1
+                masks[i] &= self.df['jet_bmatched_'+str(jet_i)] == 0
+
+        elif 'bM' in region_string:
+            for i in range(njet):
+                jet_i = i+1
+                masks[i] &= self.df['jet_bmatched_'+str(jet_i)] == 1
+        
+        return [ self.df[mask].index for mask in masks ]
+
+    def plot_response(self,region_string):
+        pass
+        
