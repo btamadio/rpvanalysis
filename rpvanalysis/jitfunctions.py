@@ -43,12 +43,9 @@ def apply_get_dressed_mass(col_pt,col_temp_bin,probs_array,bin_centers_array,n_t
     assert n == len(col_temp_bin)
     result = np.zeros( (n,n_toys) )
     for i in range(n):
-        if( i % 100000 == 0):
-            print('    dressing event %i'%i)
         probs = probs_array[col_temp_bin[i]]
         bin_centers = bin_centers_array[col_temp_bin[i]]
         for j in range(n_toys):
-            else:
-                r = sample_from_cdf(np.random.random(),probs,bin_centers)
-                result[i][j] = np.exp(r)*col_pt[i]
+            r = sample_from_cdf(np.random.random(),probs,bin_centers)
+            result[i][j] = np.exp(r)*col_pt[i]
     return result

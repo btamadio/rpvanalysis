@@ -13,7 +13,7 @@ class analyzer:
 
         print('Setting up analysis')
         print('reading file % s'%file_name)
-        self.df = pd.read_csv(file_name,delimiter=' ',index_col='event_number',na_values=[-999])#,nrows=10000)
+        self.df = pd.read_csv(file_name,delimiter=' ',index_col='event_number',na_values=[-999],nrows=10000)
         self.compute_temp_bins()
         self.create_templates()
         self.compute_dressed_masses()
@@ -93,4 +93,39 @@ class analyzer:
                                                          self.bin_centers_array,
                                                          n_toys)
             self.dressed_mass_df[jet_i]=pd.DataFrame(result,index=self.df.index,columns=['jet_dressed_m_'+str(j) for j in range(n_toys)])
-    
+
+    def get_region_index(self,region_string,jet_i):
+        #Given a region string and jet number, return index of jets in that region
+        mask = None
+
+        if region_string.startswith('3j'):
+            mask = self.df['njet']==3
+        elif region_string.startswith('4j'):
+            mask = self.df['njet']==4
+        elif region_string.startswith('5j'):
+            mask = self.df['njet']>=5
+        else:
+            print('Error: region name %s is invalid. Must start with 3j,4j, or 5j'%region_string)
+            return np.array([])
+
+        if 's0' in region_string:
+            mask &= self.df['njet_soft'] == 0
+        elif 's1' in region_string:
+            mask &= self.df['njet_soft'] >= 1
+
+        if 'VR' in region_string:
+            mask &= self.df['dEta'] > 1.4
+        elif 'SR' in region_string:
+            mask &= self.df['dEta'] < 1.4
+
+        if 'b0' in region_string:
+            mask &= self.df['nbjet'] == 0
+        elif 'b1' in region_string:
+            mask &= self.df['nbjet'] >= 1
+
+        if 'bU' in region_string:
+            mask &= self.df['jet_bmatched_'+str(jet_i)] == 0
+        elif 'bM' in region_string:
+            mask &= self.df['jet_bmatched_'+str(jet_i)] == 1
+        
+        return self.df[mask].index
