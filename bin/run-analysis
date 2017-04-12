@@ -2,4 +2,3 @@
 import rpvanalysis
 import sys
 a = rpvanalysis.analyzer(sys.argv[1])
-a.create_templates()
