@@ -48,7 +48,7 @@ class analyzer:
         return (hist,bin_edges)
 
     def create_templates(self):
-        #TODO: optimize with JIT
+        #TODO: optimize with JIT and make use of get_region_index function
 
         #Create template histograms from CR
         print('Creating templates from control region')
@@ -94,7 +94,7 @@ class analyzer:
                                                          n_toys)
             self.dressed_mass_df[jet_i]=pd.DataFrame(result,index=self.df.index,columns=['jet_dressed_m_'+str(j) for j in range(n_toys)])
 
-    def get_region_index(self,region_string,jet_i):
+    def get_region_index(self,region_string,jet_i=0):
         #Given a region string and jet number, return index of jets in that region
         mask = None
 
@@ -122,6 +122,10 @@ class analyzer:
             mask &= self.df['nbjet'] == 0
         elif 'b1' in region_string:
             mask &= self.df['nbjet'] >= 1
+            
+        if jet_i == 0 and ('bU' in region_string or 'bM' in region_string):
+            print ('Error: for b-matched or non-b-matched regions, must specify jet index')
+            return np.array([])
 
         if 'bU' in region_string:
             mask &= self.df['jet_bmatched_'+str(jet_i)] == 0
