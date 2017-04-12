@@ -6,14 +6,17 @@ import jitfunctions
 
 class analyzer:
     def __init__(self,file_name):
+        self.n_toys = 100
         self.templates = {}
         self.probs_array = np.zeros((120,50))
         self.bin_edges_array = np.zeros((120,51))
         self.bin_centers_array = np.zeros((120,50))
+        self.pt_bins = np.array([0.2,0.221,0.244,0.270,0.293,0.329,0.364,0.402,0.445,0.492,0.544,0.6,0.644,0.733,0.811,13])
+        self.eta_bins = np.array([0.0,0.5,1.0,1.5,2.0])
 
         print('Setting up analysis')
         print('reading file % s'%file_name)
-        self.df = pd.read_csv(file_name,delimiter=' ',index_col='event_number',na_values=[-999],nrows=10000)
+        self.df = pd.read_csv(file_name,delimiter=' ',index_col='event_number',na_values=[-999],nrows=100000)
         self.compute_temp_bins()
         self.create_templates()
         self.compute_dressed_masses()
@@ -64,11 +67,8 @@ class analyzer:
             jet_var_list = ['jet_temp_bin_'+str(i),'jet_m_'+str(i),'jet_pt_'+str(i),'jet_is_CR_'+str(i),'weight']
             df_temps[i-1] = self.df[self.df['jet_is_CR_'+str(i)]==1][jet_var_list].set_index(keys=['jet_temp_bin_'+str(i)])
 
-        pt_bins = np.array([0.2,0.221,0.244,0.270,0.293,0.329,0.364,0.402,0.445,0.492,0.544,0.6,0.644,0.733,0.811,13])
-        eta_bins = np.array([0.0,0.5,1.0,1.5,2.0])
-
-        for pt_bin in range(len(pt_bins)-1):
-            for eta_bin in range(len(eta_bins)-1):
+        for pt_bin in range(len(self.pt_bins)-1):
+            for eta_bin in range(len(self.eta_bins)-1):
                 for bmatch in [0,1]:
                     key = 60*bmatch+4*pt_bin+eta_bin
                     self.templates[key] = self.get_template_hist(df_temps,key)
@@ -83,16 +83,16 @@ class analyzer:
         plt.bar(h[1][:-1],h[0],width=h[1][1]-h[1][0])
         plt.show()
 
-    def compute_dressed_masses(self,n_toys=100):
+    def compute_dressed_masses(self):
         print('Generating dressed masses')
-        self.dressed_mass_df = {}
+        self.dressed_mass_df = []
         for jet_i in range(1,5):
             result = jitfunctions.apply_get_dressed_mass(self.df['jet_pt_'+str(jet_i)].values,
                                                          self.df['jet_temp_bin_'+str(jet_i)].values,
                                                          self.probs_array,
                                                          self.bin_centers_array,
-                                                         n_toys)
-            self.dressed_mass_df[jet_i]=pd.DataFrame(result,index=self.df.index,columns=['jet_dressed_m_'+str(j) for j in range(n_toys)])
+                                                         self.n_toys)
+            self.dressed_mass_df.append(pd.DataFrame(result,index=self.df.index,columns=['jet_dressed_m_'+str(j) for j in range(self.n_toys)]))
 
     def get_region_index(self,region_string):
         #Given a region string, return a list corresponding to the index of jets for that region
@@ -143,6 +143,21 @@ class analyzer:
         return [ self.df[mask].index for mask in masks ]
 
     def plot_response(self,region_string):
+        print('Generating response plots for region %s'%region_string)
         indices = self.get_region_index(region_string)
-        print (region_string,[len(index) for index in indices])
-        
+
+        jet_pt = self.df.ix[indices[0],'jet_pt_1'].values
+        jet_eta = self.df.ix[indices[0],'jet_eta_1'].values
+        jet_m = self.df.ix[indices[0],'jet_m_1'].values
+        jet_weight = self.df.ix[indices[0],'weight'].values
+        jet_dressed_m = self.dressed_mass_df[0].ix[indices[0],'jet_dressed_m_0'].values
+
+        for i in range(1,len(indices)):
+            jet_i = i+1
+            jet_pt = np.append( jet_pt,self.df.ix[indices[i],'jet_pt_'+str(jet_i)].values )
+            jet_eta = np.append( jet_eta,self.df.ix[indices[i],'jet_eta_'+str(jet_i)].values )
+            jet_m = np.append( jet_m,self.df.ix[indices[i],'jet_m_'+str(jet_i)].values )
+            jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
+            jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_df[i].ix[indices[i],'jet_dressed_m_0'].values,axis=0)
+        dressed_mean,kin_mean,err=jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
+        print(dressed_mean,kin_mean,err)

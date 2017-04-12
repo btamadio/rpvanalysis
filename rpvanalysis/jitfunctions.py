@@ -1,6 +1,14 @@
 import numba
 import numpy as np
 
+@numba.jit(nopython=True)
+def get_pt_bin(pt,pt_bins):
+    if pt > pt_bins[-1]:
+        return(len(pt_bins)-1)
+    for i in range(len(pt_bins)-1):
+        if pt > pt_bins[i] and pt <= pt_bins[i+1]:
+            return i
+    return -1
 #These functions are optimized with numba.jit
 @numba.jit(nopython=True)
 def get_temp_bin(pt,eta,bmatch):
@@ -49,3 +57,38 @@ def apply_get_dressed_mass(col_pt,col_temp_bin,probs_array,bin_centers_array,n_t
             r = sample_from_cdf(np.random.random(),probs,bin_centers)
             result[i][j] = np.exp(r)*col_pt[i]
     return result
+
+@numba.jit(nopython=True)
+def apply_get_mass_response(col_pt,col_eta,col_m,col_weight,col_dressed_m,pt_bins):
+    n = len(col_pt)
+    assert n == len(col_eta) == len(col_m) == len(col_weight) == len(col_dressed_m)
+
+    dressed_mean = np.zeros(len(pt_bins) - 1)
+    kin_mean = np.zeros(len(pt_bins) - 1)
+    kin_std = np.zeros( len(pt_bins) -1)
+
+    sumw = np.zeros(len(pt_bins) - 1)
+    sumw2 = np.zeros(len(pt_bins) -1) 
+    err = np.zeros(len(pt_bins) -1) 
+
+    #Calculate x_bar for each pt bin
+    for i in range(n):
+        pt_bin = get_pt_bin(col_pt[i],pt_bins)
+
+        kin_mean[pt_bin] += col_m[i]*col_weight[i]
+        sumw[pt_bin] += col_weight[i]
+        sumw2[pt_bin] += col_weight[i]*col_weight[i]
+
+        dressed_mean[pt_bin] += col_dressed_m[i]*col_weight[i]
+    
+    dressed_mean = dressed_mean / sumw
+    kin_mean = kin_mean / sumw
+
+    #Calculate std for each pt bin
+    for i in range(n):
+        pt_bin = get_pt_bin(col_pt[i],pt_bins)
+        kin_std += col_weight[i]*(col_m[i]-kin_mean[pt_bin])*(col_m[i]-kin_mean[pt_bin])
+    kin_std = np.sqrt(kin_std / (sumw-1))
+    n_eff = sumw*sumw/sumw2
+    err = kin_std/np.sqrt(n_eff)
+    return(dressed_mean,kin_mean,err)
