@@ -95,8 +95,7 @@ class analyzer:
             self.dressed_mass_df[jet_i]=pd.DataFrame(result,index=self.df.index,columns=['jet_dressed_m_'+str(j) for j in range(n_toys)])
 
     def get_region_index(self,region_string):
-        #Given a region string, return index of jets in that region
-        #for bM and bU regions, return list of indices, corresponding to each jet
+        #Given a region string, return a list corresponding to the index of jets for that region
         mask = None
         njet=0
         if region_string.startswith('3j'):
@@ -128,7 +127,7 @@ class analyzer:
             mask &= self.df['nbjet'] >= 1
     
         if (not 'bU' in region_string) and (not 'bM' in region_string):
-            return self.df[mask].index
+            return [ self.df[mask].index for _ in range(njet) ]
         
         masks = [ mask for _ in range(njet)]
         if 'bU' in region_string:
@@ -144,5 +143,6 @@ class analyzer:
         return [ self.df[mask].index for mask in masks ]
 
     def plot_response(self,region_string):
-        pass
+        indices = self.get_region_index(region_string)
+        print (region_string,[len(index) for index in indices])
         
