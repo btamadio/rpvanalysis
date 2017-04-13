@@ -6,7 +6,44 @@ import array
 def get_random_string(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
-def plot_response(response,region_string,pt_bins,eta_bin=-1):
+def get_region_label(region_str):
+    lines = []
+    if '3j' in region_str:
+        lines.append('N_{jet} = 3')
+    elif '4j' in region_str:
+        lines.append('N_{jet} = 4')
+    elif '5j' in region_str:
+        lines.append('N_{jet} #geq 5')
+    if 's0' in region_str:
+        lines.append('N_{soft jet} = 0')
+    elif 's1' in region_str:
+        lines.append('N_{soft jet} #geq 1')
+    if 'VR' in region_str:
+        lines.append('|#Delta #eta| > 1.4')
+    elif 'SR' in region_str:
+        lines.append('|#Delta #eta| < 1.4')
+    if 'b0' in region_str:
+        lines.append('b-veto')
+    elif 'b1' in region_str:
+        lines.append('b-tag')
+    if 'bM' in region_str:
+        lines.append('b-matched')
+    elif 'bU' in region_str:
+        lines.append('non-b-matched')
+    label = ''
+    if len(lines) == 1:
+        label = lines[0]
+    elif len(lines) == 2:
+        label = '#splitline{'+lines[0]+'}{'+lines[1]+'}'
+    elif len(lines) == 3:
+        label = '#splitline{#splitline{'+lines[0]+'}{'+lines[1]+'}}{'+lines[2]+'}'
+    elif len(lines) == 4:
+        label = '#splitline{#splitline{'+lines[0]+'}{'+lines[1]+'}}{#splitline{'+lines[2]+'}{'+lines[3]+'}}'
+    elif len(lines) == 5:
+        label = '#splitline{#splitline{#splitline{'+lines[0]+'}{'+lines[1]+'}}{#splitline{'+lines[2]+'}{'+lines[3]+'}}}{'+lines[4]+'}'
+    return label
+
+def plot_response(response,region_str,pt_bins,lumi_label='36.45',mc_label='',eta_bin=-1):
     dressed_mean,kin_mean,err = response
     ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasStyle.C')
     ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasLabels.C')
@@ -31,21 +68,39 @@ def plot_response(response,region_string,pt_bins,eta_bin=-1):
         kin_hist.SetBinError(bin,err[i])
         dressed_hist.SetBinContent(bin,dressed_mean[i])
     print('plotting...')
-    dressed_hist.Draw()
-    dressed_hist.SetMinimum(0.0)
-    dressed_hist.SetMaximum(0.25)
-    kin_hist.Draw('same ep')
 
     dressed_hist.SetLineColor(ROOT.kRed)
     dressed_hist.SetLineWidth(2)
     dressed_hist.SetFillStyle(3002)
+    dressed_hist.SetMinimum(0.0)
+    dressed_hist.SetMaximum(0.25)
 
     kin_hist.SetLineColor(ROOT.kBlack)
     kin_hist.SetLineWidth(2)
     kin_hist.SetMarkerStyle(20)
     kin_hist.SetMarkerSize(0.01)
 
-    ROOT.ATLASLabel(0.35,0.85,'Internal',0.05,0.115,1)
+    dressed_hist.Draw()
+    kin_hist.Draw('same ep')
+
+    dressed_hist.GetYaxis().SetTitle('<m_{jet}> [TeV]')
+
+    dressed_hist.GetYaxis().SetTitleSize(20)
+    dressed_hist.GetYaxis().SetTitleFont(43)
+    dressed_hist.GetYaxis().SetTitleOffset(1.55)
+    dressed_hist.GetYaxis().SetLabelFont(43)
+    dressed_hist.GetYaxis().SetLabelSize(15)
+
+    #various labels
+    ROOT.ATLASLabel(0.25,0.85,'Internal',0.05,0.115,1)
+    lat = ROOT.TLatex()
+    if not mc_label == '':
+        lat.DrawLatexNDC(0.25,0.78,lumi_label+' fb^{-1} '+mc_label)
+    else:
+        lat.DrawLatexNDC(0.25,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
+    lat.DrawLatexNDC(0.24,0.42,get_region_label(region_str))
+
+    #legend
     leg = ROOT.TLegend(0.65,0.7,0.85,0.9)
     leg.AddEntry(kin_hist,'Kinematic','LP')
     leg.AddEntry(dressed_hist,'Prediction #pm 1#sigma','LF')
@@ -56,6 +111,8 @@ def plot_response(response,region_string,pt_bins,eta_bin=-1):
     leg.SetFillColor(0)
     leg.Draw()
     c.cd()
+
+    #ratio plot
     p2 = ROOT.TPad('p2_'+rand_str,'p2_'+rand_str,0,0.05,1,0.3)
     p2.SetTopMargin(0)
     p2.SetBottomMargin(0.2)
@@ -73,19 +130,27 @@ def plot_response(response,region_string,pt_bins,eta_bin=-1):
             ratio_hist.SetBinError(bin,1)
             ratio_hist.SetBinContent(bin,0)
     ratio_hist.Draw('e0')
+
     ratio_hist.GetYaxis().SetTitle('Kin/Pred')
-    ratio_hist.SetMinimum(0.8)
-    ratio_hist.SetMaximum(1.2)
+    ratio_hist.SetMinimum(0.78)
+    ratio_hist.SetMaximum(1.22)
     ratio_hist.GetYaxis().SetNdivisions(505)
-    ratio_hist.GetYaxis().SetTitleSize(20)
+    ratio_hist.GetYaxis().SetTitleSize(18)
     ratio_hist.GetYaxis().SetTitleFont(43)
     ratio_hist.GetYaxis().SetTitleOffset(1.55)
     ratio_hist.GetYaxis().SetLabelFont(43)
     ratio_hist.GetYaxis().SetLabelSize(15)
-    ratio_hist.GetXaxis().SetTitleSize(17)
+
+    ratio_hist.GetXaxis().SetTitleSize(18)
     ratio_hist.GetXaxis().SetTitleFont(43)
-    ratio_hist.GetXaxis().SetTitleOffset(3.8)
+    ratio_hist.GetXaxis().SetTitleOffset(4)
     ratio_hist.GetXaxis().SetLabelFont(43)
     ratio_hist.GetXaxis().SetLabelSize(15)
+    ratio_hist.GetXaxis().SetTitle('jet p_{T} [TeV]')
     c.cd()
     c.Update()
+
+def plot_hist(h):
+    plt.figure()
+    plt.bar(h[1][:-1],h[0],width=h[1][1]-h[1][0])
+    plt.show()

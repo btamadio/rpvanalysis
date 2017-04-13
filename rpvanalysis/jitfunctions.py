@@ -60,7 +60,7 @@ def apply_get_dressed_mass(col_pt,col_temp_bin,probs_array,bin_centers_array,n_t
             result[i][j] = np.exp(r)*col_pt[i]
     return result
 
-@numba.jit#(nopython=True)
+@numba.jit(nopython=True)
 def apply_get_mass_response(col_pt,col_eta,col_m,col_weight,col_dressed_m,pt_bins):
     n = len(col_pt)
     assert n == len(col_eta) == len(col_m) == len(col_weight) == len(col_dressed_m)

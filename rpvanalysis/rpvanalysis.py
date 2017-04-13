@@ -4,13 +4,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import jitfunctions
 import plotters
+import helpers
 
 class analyzer:
     def __init__(self,file_name):
-        self.n_toys = 100
+        self.n_toys = 1
         self.plot_path = '/project/projectdirs/atlas/www/multijet/RPV/btamadio/'
         self.date = '04_12'
         self.job_name = 'pythia'
+        self.mc_label = 'Pythia'
+        self.lumi_label = '36.45'
         self.templates = {}
         self.probs_array = np.zeros((120,50))
         self.bin_edges_array = np.zeros((120,51))
@@ -83,12 +86,6 @@ class analyzer:
                     for i in range(len(self.bin_edges_array[key])-1):
                         self.bin_centers_array[key][i] = (self.bin_edges_array[key][i+1]+self.bin_edges_array[key][i])/2
 
-    def plot_template(self,temp_bin):
-        h = self.templates[temp_bin]
-        plt.figure()
-        plt.bar(h[1][:-1],h[0],width=h[1][1]-h[1][0])
-        plt.show()
-
     def compute_dressed_masses(self):
         print('Generating dressed masses')
         self.dressed_mass_df = []
@@ -100,57 +97,10 @@ class analyzer:
                                                          self.n_toys)
             self.dressed_mass_df.append(pd.DataFrame(result,index=self.df.index,columns=['jet_dressed_m_'+str(j) for j in range(self.n_toys)]))
 
-    def get_region_index(self,region_string):
-        #Given a region string, return a list corresponding to the index of jets for that region
-        mask = None
-        njet=0
-        if region_string.startswith('3j'):
-            mask = self.df['njet']==3
-            njet=3
-        elif region_string.startswith('4j'):
-            mask = self.df['njet']==4
-            njet=4
-        elif region_string.startswith('5j'):
-            mask = self.df['njet']>=5
-            njet=4
-        else:
-            print('Error: region name %s is invalid. Must start with 3j,4j, or 5j'%region_string)
-            return np.array([])
-
-        if 's0' in region_string:
-            mask &= self.df['njet_soft'] == 0
-        elif 's1' in region_string:
-            mask &= self.df['njet_soft'] >= 1
-
-        if 'VR' in region_string:
-            mask &= self.df['dEta'] > 1.4
-        elif 'SR' in region_string:
-            mask &= self.df['dEta'] < 1.4
-
-        if 'b0' in region_string:
-            mask &= self.df['nbjet'] == 0
-        elif 'b1' in region_string:
-            mask &= self.df['nbjet'] >= 1
-    
-        if (not 'bU' in region_string) and (not 'bM' in region_string):
-            return [ self.df[mask].index for _ in range(njet) ]
-        
-        masks = [ mask for _ in range(njet)]
-        if 'bU' in region_string:
-            for i in range(njet):
-                jet_i = i+1
-                masks[i] &= self.df['jet_bmatched_'+str(jet_i)] == 0
-
-        elif 'bM' in region_string:
-            for i in range(njet):
-                jet_i = i+1
-                masks[i] &= self.df['jet_bmatched_'+str(jet_i)] == 1
-        
-        return [ self.df[mask].index for mask in masks ]
 
     def make_response_plot(self,region_string,eta_bin=-1):
         print('Generating response plots for region %s'%region_string)
-        indices = self.get_region_index(region_string)
+        indices = helpers.get_region_index(self.df,region_string)
 
         jet_pt = self.df.ix[indices[0],'jet_pt_1'].values
         jet_eta = self.df.ix[indices[0],'jet_eta_1'].values
@@ -166,4 +116,4 @@ class analyzer:
             jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
             jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_df[i].ix[indices[i],'jet_dressed_m_0'].values,axis=0)
         response = jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
-        plotters.plot_response(response,region_string,self.pt_bins,eta_bin)
+        plotters.plot_response(response,region_string,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
