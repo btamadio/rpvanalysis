@@ -3,20 +3,25 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import jitfunctions
+import ROOT
+import array
 
 class analyzer:
     def __init__(self,file_name):
         self.n_toys = 100
+        self.plot_path = '/project/projectdirs/atlas/www/multijet/RPV/btamadio/'
+        self.date = '04_12'
+        self.job_name = 'pythia'
         self.templates = {}
         self.probs_array = np.zeros((120,50))
         self.bin_edges_array = np.zeros((120,51))
         self.bin_centers_array = np.zeros((120,50))
-        self.pt_bins = np.array([0.2,0.221,0.244,0.270,0.293,0.329,0.364,0.402,0.445,0.492,0.544,0.6,0.644,0.733,0.811,13])
+        self.pt_bins = np.array([0.2,0.221,0.244,0.270,0.293,0.329,0.364,0.402,0.445,0.492,0.544,0.6,0.644,0.733,0.811,0.896])
         self.eta_bins = np.array([0.0,0.5,1.0,1.5,2.0])
 
         print('Setting up analysis')
         print('reading file % s'%file_name)
-        self.df = pd.read_csv(file_name,delimiter=' ',index_col='event_number',na_values=[-999],nrows=100000)
+        self.df = pd.read_csv(file_name,delimiter=' ',na_values=[-999],nrows=400000)
         self.compute_temp_bins()
         self.create_templates()
         self.compute_dressed_masses()
@@ -28,7 +33,9 @@ class analyzer:
         for i in range(1,5):
             result = jitfunctions.apply_get_temp_bin(self.df['jet_pt_'+str(i)].values,
                                                      self.df['jet_eta_'+str(i)].values,
-                                                     self.df['jet_bmatched_'+str(i)].values)
+                                                     self.df['jet_bmatched_'+str(i)].values,
+                                                     self.pt_bins,
+                                                     self.eta_bins)
             self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))
 
     def get_template_hist(self,df_temps,temp_bin):
@@ -142,7 +149,40 @@ class analyzer:
         
         return [ self.df[mask].index for mask in masks ]
 
-    def plot_response(self,region_string):
+    def plot_response(self,region_string,eta_bin=-1):
+        dressed_mean,kin_mean,err = self.get_response(region_string)
+        ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasStyle.C')
+        ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasLabels.C')
+        ROOT.SetAtlasStyle()
+        c = ROOT.TCanvas('c','c',800,600)
+        c.cd()
+        n_bins = len(self.pt_bins)-1
+        kin_hist = ROOT.TH1F('kin_hist','kin_hist',n_bins,array.array('d',self.pt_bins))
+        dressed_hist = ROOT.TH1F('dressed_hist','dressed_hist',n_bins,array.array('d',self.pt_bins))
+        kin_hist.SetDirectory(0)
+        dressed_hist.SetDirectory(0)
+        for i in range(n_bins):
+            bin = i+1
+            kin_hist.SetBinContent(bin,kin_mean[i])
+            kin_hist.SetBinError(bin,err[i])
+            dressed_hist.SetBinContent(bin,dressed_mean[i])
+        dressed_hist.Draw()
+        dressed_hist.SetMinimum(0.0)
+        dressed_hist.SetMaximum(0.25)
+        kin_hist.Draw('same ep')
+
+        dressed_hist.SetLineColor(ROOT.kRed)
+        dressed_hist.SetLineWidth(2)
+        
+        kin_hist.SetLineColor(ROOT.kBlack)
+        kin_hist.SetLineWidth(2)
+        kin_hist.SetMarkerStyle(20)
+        kin_hist.SetMarkerSize(0.01)
+
+        c.Modified()
+        c.Update()
+
+    def get_response(self,region_string):
         print('Generating response plots for region %s'%region_string)
         indices = self.get_region_index(region_string)
 
@@ -159,5 +199,5 @@ class analyzer:
             jet_m = np.append( jet_m,self.df.ix[indices[i],'jet_m_'+str(jet_i)].values )
             jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
             jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_df[i].ix[indices[i],'jet_dressed_m_0'].values,axis=0)
-        dressed_mean,kin_mean,err=jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
-        print(dressed_mean,kin_mean,err)
+        return jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
+        
