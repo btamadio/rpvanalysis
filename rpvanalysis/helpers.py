@@ -22,12 +22,17 @@ class template:
             self.sumw += temp_sumw
             self.sumw2 += temp_sumw2
         #normalize to 1 so it can be used as PDF
+        for i,sumw in enumerate(self.sumw):
+            if sumw<0:
+                print ('Warning: setting negative template bin height to zero.')
+                print ('   template %i, bin %i, value %.2f'%(temp_bin,i,sumw) )
+            self.sumw[i] = 0
         self.probs = self.sumw / self.sumw.sum()
-        assert abs(self.probs.sum() - 1) < 1e-6
+
         for i in range(n_bins):
             self.bin_centers[i] = (self.bin_edges[i+1]+self.bin_edges[i])/2
-        self.n_eff = self.sumw*self.sumw/self.sumw2        
-
+        self.n_eff = self.sumw*self.sumw/self.sumw2
+        self.n_eff[ self.n_eff == np.nan ] = 0
     def get_mean(self):
         return np.sum( self.bin_centers*self.sumw ) / n_bins
 
