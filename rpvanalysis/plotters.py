@@ -2,6 +2,12 @@ import random
 import string
 import ROOT
 import array
+import matplotlib.pyplot as plt
+import numpy as np
+ROOT.gROOT.SetBatch()
+ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasStyle.C')
+ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasLabels.C')
+ROOT.SetAtlasStyle()
 
 def get_random_string(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
@@ -43,11 +49,9 @@ def get_region_label(region_str):
         label = '#splitline{#splitline{#splitline{'+lines[0]+'}{'+lines[1]+'}}{#splitline{'+lines[2]+'}{'+lines[3]+'}}}{'+lines[4]+'}'
     return label
 
-def plot_response(response,region_str,pt_bins,lumi_label='36.45',mc_label='',eta_bin=-1):
+def plot_response(response,plot_path,region_str,pt_bins,lumi_label='36.45',mc_label='',eta_bin=-1):
     dressed_mean,kin_mean,err = response
-    ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasStyle.C')
-    ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasLabels.C')
-    ROOT.SetAtlasStyle()
+
     rand_str = get_random_string()
     can_name = 'c_'+rand_str
     c = ROOT.TCanvas(can_name,can_name,800,800)
@@ -156,6 +160,11 @@ def plot_response(response,region_str,pt_bins,lumi_label='36.45',mc_label='',eta
     ratio_hist.GetXaxis().SetTitle('jet p_{T} [TeV]')
     c.cd()
     c.Update()
+    c.Modified()
+    file_name = 'plot_mass_response.png'
+    full_path = plot_path+region_str+'/'+file_name
+    print('Saving plot to %s'%full_path)
+    c.Print(full_path)
 
 def plot_hist(h):
     plt.figure()

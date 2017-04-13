@@ -12,8 +12,6 @@ def get_pt_bin(pt,pt_bins):
 
 @numba.jit(nopython=True)
 def get_temp_bin(pt,eta,bmatch,pt_bins,eta_bins):
-    #pt_bins = np.array([0.2,0.221,0.244,0.270,0.293,0.329,0.364,0.402,0.445,0.492,0.544,0.6,0.644,0.733,0.811,13])
-    #eta_bins = np.array([0.0,0.5,1.0,1.5,2.0])
     pt_bin = -1
     eta_bin = -1
     if pt > pt_bins[-2]:
@@ -38,25 +36,35 @@ def apply_get_temp_bin(col_pt,col_eta,col_bmatch,pt_bins,eta_bins):
         result[i] = get_temp_bin(col_pt[i],abs(col_eta[i]),col_bmatch[i],pt_bins,eta_bins)
     return result
 
+
 @numba.jit(nopython=True)
-def sample_from_cdf(sample,probs,bin_centers):
+def sample_from_cdf(sample,probs,bin_centers,bin_edges):
     thresh = 0.0
     for i in range(len(bin_centers)):
         thresh+=probs[i]
         if sample < thresh:
-            return bin_centers[i] 
-    return bin_centers[i]
+            return np.random.uniform( bin_edges[i], bin_edges[i+1] )
+    return np.random.uniform(bin_edges[i],bin_edges[i+1])
 
 @numba.jit(nopython=True)
-def apply_get_dressed_mass(col_pt,col_temp_bin,probs_array,bin_centers_array,n_toys):
+def apply_get_dressed_mass(col_pt,col_temp_bin,templates_array,templates_neff_array,bin_centers,bin_edges,n_toys):
     n = len(col_pt)    
+    n_bins = len(templates_array[0])
     assert n == len(col_temp_bin)
     result = np.zeros( (n,n_toys) )
     for i in range(n):
-        probs = probs_array[col_temp_bin[i]]
-        bin_centers = bin_centers_array[col_temp_bin[i]]
+        #Poisson fluctuate each template bin
+        probs = np.zeros( n_bins )
+        for j in range(n_bins):
+            n_eff = templates_neff_array[col_temp_bin[i]][j]
+            sumw = templates_array[col_temp_bin[i]][j]
+            probs[j] = sumw
+            #probs[j] = (np.random.poisson( n_eff ) / n_eff) * sumw
+        probs = probs / probs.sum()
+        assert abs( probs.sum() - 1 ) < 1e-6
+        #probs = probs_array[col_temp_bin[i]]
         for j in range(n_toys):
-            r = sample_from_cdf(np.random.random(),probs,bin_centers)
+            r = sample_from_cdf(np.random.random(),probs,bin_centers,bin_edges)
             result[i][j] = np.exp(r)*col_pt[i]
     return result
 

@@ -2,12 +2,14 @@ import numpy as np
 
 class template:
     def __init__(self,n_bins,df_temps,temp_bin,x_min=-7,x_max=0):
+        #print('Creating template for bin %i '% temp_bin)
         self.sumw,self.bin_edges=np.histogram(a=[],range=(x_min,x_max),bins=n_bins)
         self.sumw2,self.bin_edges2=np.histogram(a=[],range=(x_min,x_max),bins=n_bins)
 
         self.sumw=self.sumw.astype(float)
         self.sumw2=self.sumw2.astype(float)
-        
+
+        self.bin_centers = np.zeros(n_bins)
         for i in range(len(df_temps)):
             try:
                 this_df = df_temps[i].ix[temp_bin]
@@ -15,13 +17,24 @@ class template:
                 continue
             temp_vals = np.log(this_df['jet_m_'+str(i+1)]/this_df['jet_pt_'+str(i+1)])
             temp_wts = this_df.weight
-            temp_sumw,temp_bin_edges = np.histogram(a=temp_vals,weights=temp_wts,range=(x_min,x_mx),bins=n_bins)
-            temp_sumw2,temp_bin_edges2 = np.histogram(a=temp_vals,weights=temp_wts**2,range=(x_min,x_max),bins=n_bins)
+            temp_sumw,temp_bin_edges = np.histogram(a=temp_vals,weights=temp_wts,range=(x_min,x_max),bins=n_bins)
+            temp_sumw2,temp_bin_edges2 = np.histogram(a=temp_vals,weights=temp_wts*temp_wts,range=(x_min,x_max),bins=n_bins)
             self.sumw += temp_sumw
             self.sumw2 += temp_sumw2
         #normalize to 1 so it can be used as PDF
         self.probs = self.sumw / self.sumw.sum()
         assert abs(self.probs.sum() - 1) < 1e-6
+        for i in range(n_bins):
+            self.bin_centers[i] = (self.bin_edges[i+1]+self.bin_edges[i])/2
+        self.n_eff = self.sumw*self.sumw/self.sumw2        
+
+    def get_mean(self):
+        return np.sum( self.bin_centers*self.sumw ) / n_bins
+
+    def get_std_err(self):
+#        x_bar = self.get_mean()
+#        std = np.sum( self.
+        pass
 
 def get_region_index(df,region_string,eta_min=0,eta_max=2):
     #Given a region string, return a list corresponding to the index of jets for that region

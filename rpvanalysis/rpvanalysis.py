@@ -5,25 +5,33 @@ import matplotlib.pyplot as plt
 import jitfunctions
 import plotters
 import helpers
+import os
 
 class analyzer:
     def __init__(self,file_name):
         self.n_toys = 1
-        self.plot_path = '/project/projectdirs/atlas/www/multijet/RPV/btamadio/'
+        self.web_path = '/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/'
         self.date = '04_12'
         self.job_name = 'pythia'
+        self.plot_path = self.web_path + self.date + '_' + self.job_name + '/'
+        print(' Output path for plots: %s ' % self.plot_path )
+        os.system(' mkdir -p %s'%self.plot_path)
+        os.system(' chmod a+rx %s'%self.plot_path)
+
         self.mc_label = 'Pythia'
         self.lumi_label = '36.45'
+        self.n_template_bins = 50
+        self.template_min = -7
+        self.template_max = 0
         self.templates = {}
-        self.probs_array = np.zeros((120,50))
-        self.bin_edges_array = np.zeros((120,51))
-        self.bin_centers_array = np.zeros((120,50))
+        self.templates_array = np.zeros((120,50))
+        self.templates_neff_array = np.zeros((120,50))
         self.pt_bins = np.array([0.2,0.221,0.244,0.270,0.293,0.329,0.364,0.402,0.445,0.492,0.544,0.6,0.644,0.733,0.811,0.896])
         self.eta_bins = np.array([0.0,0.5,1.0,1.5,2.0])
 
         print('Setting up analysis')
         print('reading file % s'%file_name)
-        self.df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=400000)
+        self.df = pd.read_csv(file_name,delimiter=' ',na_values=[-999],nrows=400000)
         self.compute_temp_bins()
         self.create_templates()
         self.compute_dressed_masses()
@@ -39,25 +47,6 @@ class analyzer:
                                                      self.pt_bins,
                                                      self.eta_bins)
             self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))
-
-    def get_template_hist(self,df_temps,temp_bin):
-        #TODO: optimize with JIT. This is really messy
-        n_bins = 50
-        hist,bin_edges = np.histogram(a=[],range=(-7,0),bins=n_bins)
-        hist = hist.astype(float)
-        for i in range(3):
-            try:
-                this_df = df_temps[i].ix[temp_bin]
-            except:
-                continue
-            temp_vals = np.log(this_df['jet_m_'+str(i+1)]/this_df['jet_pt_'+str(i+1)])
-            temp_wts = this_df.weight
-            temp_hist,temp_bin_edges = np.histogram(a=temp_vals,weights=temp_wts,range=(-7,0),bins=n_bins)
-            hist+=temp_hist
-        #normalize to 1 so it can be used as PDF
-        if hist.sum() > 0:
-            hist = hist/hist.sum()
-        return (hist,bin_edges)
 
     def create_templates(self):
         #TODO: optimize with JIT and make use of get_region_index function
@@ -75,16 +64,13 @@ class analyzer:
         for i in range(1,4):
             jet_var_list = ['jet_temp_bin_'+str(i),'jet_m_'+str(i),'jet_pt_'+str(i),'jet_is_CR_'+str(i),'weight']
             df_temps[i-1] = self.df[self.df['jet_is_CR_'+str(i)]==1][jet_var_list].set_index(keys=['jet_temp_bin_'+str(i)])
-
-        for pt_bin in range(len(self.pt_bins)-1):
-            for eta_bin in range(len(self.eta_bins)-1):
-                for bmatch in [0,1]:
+        for bmatch in [0,1]:
+            for pt_bin in range(len(self.pt_bins)-1):
+                for eta_bin in range(len(self.eta_bins)-1):
                     key = 60*bmatch+4*pt_bin+eta_bin
-                    self.templates[key] = self.get_template_hist(df_temps,key)
-                    self.probs_array[key] = self.templates[key][0]
-                    self.bin_edges_array[key] = self.templates[key][1]
-                    for i in range(len(self.bin_edges_array[key])-1):
-                        self.bin_centers_array[key][i] = (self.bin_edges_array[key][i+1]+self.bin_edges_array[key][i])/2
+                    self.templates[key] = helpers.template(self.n_template_bins,df_temps,key,self.template_min,self.template_max)
+                    self.templates_array[key]=self.templates[key].sumw
+                    self.templates_neff_array[key]=self.templates[key].n_eff
 
     def compute_dressed_masses(self):
         print('Generating dressed masses')
@@ -92,8 +78,10 @@ class analyzer:
         for jet_i in range(1,5):
             result = jitfunctions.apply_get_dressed_mass(self.df['jet_pt_'+str(jet_i)].values,
                                                          self.df['jet_temp_bin_'+str(jet_i)].values,
-                                                         self.probs_array,
-                                                         self.bin_centers_array,
+                                                         self.templates_array,
+                                                         self.templates_neff_array,
+                                                         self.templates[0].bin_centers,
+                                                         self.templates[0].bin_edges,
                                                          self.n_toys)
             self.dressed_mass_df.append(pd.DataFrame(result,index=self.df.index,columns=['jet_dressed_m_'+str(j) for j in range(self.n_toys)]))
 
@@ -105,7 +93,12 @@ class analyzer:
             eta_min = self.eta_bins[eta_bin]
             eta_max = self.eta_bins[eta_bin+1]
         indices = helpers.get_region_index(self.df,region_string,eta_min,eta_max)
+        if len(indices) == 0:
+            return
 
+        os.system('mkdir -p %s/%s' % (self.plot_path,region_string))
+        os.system('chmod a+rx %s/%s' % (self.plot_path,region_string))
+        
         jet_pt = self.df.ix[indices[0],'jet_pt_1'].values
         jet_eta = self.df.ix[indices[0],'jet_eta_1'].values
         jet_m = self.df.ix[indices[0],'jet_m_1'].values
@@ -119,6 +112,7 @@ class analyzer:
             jet_m = np.append( jet_m,self.df.ix[indices[i],'jet_m_'+str(jet_i)].values )
             jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
             jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_df[i].ix[indices[i],'jet_dressed_m_0'].values,axis=0)
-        print('len(jet_pt) = %i, sumw = %f'%(len(jet_pt),np.sum(jet_weight)))
+        #print('len(jet_pt) = %i, sumw = %f'%(len(jet_pt),np.sum(jet_weight)))
         response = jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
-        plotters.plot_response(response,region_string,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
+        plotters.plot_response(response,self.plot_path,region_string,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
+        os.system('chmod a+rx %s%s/*' % (self.plot_path,region_string))
