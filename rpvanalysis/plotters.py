@@ -4,7 +4,7 @@ import ROOT
 import array
 import matplotlib.pyplot as plt
 import numpy as np
-ROOT.gROOT.SetBatch()
+#ROOT.gROOT.SetBatch()
 ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasStyle.C')
 ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasLabels.C')
 ROOT.SetAtlasStyle()
@@ -158,9 +158,9 @@ def plot_response(response,plot_path,region_str,pt_bins,lumi_label='36.45',mc_la
     ratio_hist.GetXaxis().SetLabelFont(43)
     ratio_hist.GetXaxis().SetLabelSize(15)
     ratio_hist.GetXaxis().SetTitle('jet p_{T} [TeV]')
-    c.cd()
-    c.Update()
-    c.Modified()
+#    c.cd()
+#    c.Update()
+#    c.Modified()
     file_name = 'plot_mass_response.png'
     full_path = plot_path+region_str+'/'+file_name
     print('Saving plot to %s'%full_path)
@@ -170,3 +170,8 @@ def plot_hist(h):
     plt.figure()
     plt.bar(h[1][:-1],h[0],width=h[1][1]-h[1][0])
     plt.show()
+
+def plot_template(t):
+    plt.figure()
+    h = (t.probs,t.bin_edges)
+    plot_hist(h)
