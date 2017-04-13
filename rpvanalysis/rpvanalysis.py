@@ -6,9 +6,10 @@ import jitfunctions
 import plotters
 import helpers
 import os
+import ROOT
 
 class analyzer:
-    def __init__(self,file_name):
+    def __init__(self):
         self.n_toys = 1
         self.web_path = '/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/'
         self.date = '04_12'
@@ -17,9 +18,9 @@ class analyzer:
         print(' Output path for plots: %s ' % self.plot_path )
         os.system(' mkdir -p %s'%self.plot_path)
         os.system(' chmod a+rx %s'%self.plot_path)
-
         self.mc_label = 'Pythia'
-        self.lumi_label = '36.45'
+        self.lumi_label = '36.5'
+        self.mc_lumi = 36.45
         self.n_template_bins = 50
         self.template_min = -7
         self.template_max = 0
@@ -28,15 +29,77 @@ class analyzer:
         self.templates_neff_array = np.zeros((120,50))
         self.pt_bins = np.array([0.2,0.221,0.244,0.270,0.293,0.329,0.364,0.402,0.445,0.492,0.544,0.6,0.644,0.733,0.811,0.896])
         self.eta_bins = np.array([0.0,0.5,1.0,1.5,2.0])
-
         print('Setting up analysis')
-        print('reading file % s'%file_name)
-        self.df = pd.read_csv(file_name,delimiter=' ',na_values=[-999],nrows=400000)
-        self.compute_temp_bins()
-        self.create_templates()
-        self.compute_dressed_masses()
-        #self.df.info()
-        
+
+    def read_bkg_from_csv(self,file_name,is_mc=True):
+        print('reading from file % s'%file_name)
+        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=400000)
+        if is_mc:
+            self.bkg_df['weight'] *= self.mc_lumi
+        self.df = self.bkg_df
+
+    def read_bkg_from_root(self,file_name,is_mc=True):
+        self.bkg_df = self.root_to_df(file_name)
+        if is_mc:
+            self.bkg_df['weight'] *= self.mc_lumi
+        self.df = self.bkg_df
+
+    def read_sig_from_root(self,file_name):
+        self.sig_df = self.root_to_df(file_name)
+        self.sig_df['weight'] *= self.mc_lumi
+
+    def inject_sig(self,dsid,mult=1):
+        if self.sig_df is None:
+            print(' No signal events have been read. Run read_sig_from_root first')
+            return
+        sig_to_inj = self.sig_df[self.sig_df['mcChannelNumber']==dsid]
+        sig_to_inj['weight'] *= mult
+        self.df=self.bkg_df.append( sig_to_inj )
+        print(' injecting %i raw signal events' % len(self.sig_df[self.sig_df['mcChannelNumber']==dsid]) )
+        print(' cross-section scaled by a factor of %f'%mult)
+
+    def root_to_df(self,file_name):
+        print('reading from file % s'%file_name)
+        f = ROOT.TFile.Open(file_name)
+        t = f.Get('miniTree')
+        nEntries = t.GetEntries()
+        data = []
+        print('reading %i rows'%nEntries)
+        for entry in range(nEntries):
+            if entry%10000 == 0:
+                print(' reading entry %i'%entry)
+            row = {}
+            t.GetEntry(entry)
+            row['mcChannelNumber'] = t.mcChannelNumber
+            row['event_number'] = t.eventNumber
+            row['njet'] = t.njet
+            row['njet_soft'] = t.njet_soft
+            row['nbjet'] = t.nbjet_Fix70
+            row['MJ'] = t.MJ
+            row['dEta'] = t.dEta
+            row['weight'] = t.weight
+            row['bSF'] = t.bSF_70
+            for i in range(3):
+                row['jet_pt_'+str(i+1)] = t.jet_pt.at(i)
+                row['jet_eta_'+str(i+1)] = t.jet_eta.at(i)
+                row['jet_phi_'+str(i+1)] = t.jet_phi.at(i)
+                row['jet_m_'+str(i+1)] = t.jet_m.at(i)
+                row['jet_bmatched_'+str(i+1)] = t.jet_bmatched_Fix70.at(i)
+            if t.njet >= 4:
+                row['jet_pt_4'] = t.jet_pt.at(3)
+                row['jet_eta_4'] = t.jet_eta.at(3)
+                row['jet_phi_4'] = t.jet_phi.at(3)
+                row['jet_m_4'] = t.jet_m.at(3)
+                row['jet_bmatched_4'] = t.jet_bmatched_Fix70.at(3)            
+            else:
+                row['jet_pt_4'] = np.nan
+                row['jet_eta_4'] = np.nan
+                row['jet_phi_4'] = np.nan
+                row['jet_m_4'] = np.nan
+                row['jet_bmatched_4'] = np.nan
+            data.append(row)
+        return pd.DataFrame(data)
+
     def compute_temp_bins(self):
         #Get template bin indices for all jets and add to dataframe
         print('Determining template bins for all jets')
@@ -112,7 +175,16 @@ class analyzer:
             jet_m = np.append( jet_m,self.df.ix[indices[i],'jet_m_'+str(jet_i)].values )
             jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
             jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_df[i].ix[indices[i],'jet_dressed_m_0'].values,axis=0)
-        #print('len(jet_pt) = %i, sumw = %f'%(len(jet_pt),np.sum(jet_weight)))
         response = jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
         plotters.plot_response(response,self.plot_path,region_string,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
         os.system('chmod a+rx %s%s/*' % (self.plot_path,region_string))
+
+    def verify_templates(self):
+        print('Verifying templates')
+        for key in sorted(self.templates.keys()):
+            t = self.templates[key].probs
+            for i,prob in enumerate(t):
+                if prob < 0:
+                    print (' template number %i, bin %i, prob = %f ' % (key,i,prob) )
+            if abs(t.sum() -1) > 1e-6:
+                print(' template number %i, probabilities sum to %f'%abs(t.sum()-1))
