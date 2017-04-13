@@ -39,6 +39,8 @@ class root2csv:
                         row.append(value)
                 writer.writerow(row)
 
-r2c = root2csv('../bkgEstimation/samples/pythia_combined_mass/main_pythia_combined_mass.root','pythia_2.csv')
+r2c=root2csv('../bkgEstimation/samples/03_24_trigcompare/largeR_data_full.root','data_largeR.csv')
 r2c.loop()
+#r2c = root2csv('../bkgEstimation/samples/pythia_combined_mass/main_pythia_combined_mass.root','pythia_2.csv')
+#r2c.loop()
         
