@@ -99,7 +99,14 @@ def plot_response(response,region_str,pt_bins,lumi_label='36.45',mc_label='',eta
     else:
         lat.DrawLatexNDC(0.25,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
     lat.DrawLatexNDC(0.24,0.42,get_region_label(region_str))
-
+    if eta_bin == 0:
+        lat.DrawLatexNDC(0.7,0.18,'|#eta| < 0.5')
+    elif eta_bin == 1:
+        lat.DrawLatexNDC(0.7,0.18,'0.5 < |#eta| < 1.0')
+    elif eta_bin == 2:
+        lat.DrawLatexNDC(0.7,0.18,'1.0 < |#eta| < 1.5')
+    elif eta_bin == 3:
+        lat.DrawLatexNDC(0.7,0.18,'1.5 < |#eta| < 2.0')
     #legend
     leg = ROOT.TLegend(0.65,0.7,0.85,0.9)
     leg.AddEntry(kin_hist,'Kinematic','LP')

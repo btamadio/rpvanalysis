@@ -23,7 +23,7 @@ class analyzer:
 
         print('Setting up analysis')
         print('reading file % s'%file_name)
-        self.df = pd.read_csv(file_name,delimiter=' ',na_values=[-999],nrows=400000)
+        self.df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=400000)
         self.compute_temp_bins()
         self.create_templates()
         self.compute_dressed_masses()
@@ -97,10 +97,14 @@ class analyzer:
                                                          self.n_toys)
             self.dressed_mass_df.append(pd.DataFrame(result,index=self.df.index,columns=['jet_dressed_m_'+str(j) for j in range(self.n_toys)]))
 
-
     def make_response_plot(self,region_string,eta_bin=-1):
         print('Generating response plots for region %s'%region_string)
-        indices = helpers.get_region_index(self.df,region_string)
+        eta_min = 0
+        eta_max = 2
+        if eta_bin >= 0:
+            eta_min = self.eta_bins[eta_bin]
+            eta_max = self.eta_bins[eta_bin+1]
+        indices = helpers.get_region_index(self.df,region_string,eta_min,eta_max)
 
         jet_pt = self.df.ix[indices[0],'jet_pt_1'].values
         jet_eta = self.df.ix[indices[0],'jet_eta_1'].values
@@ -115,5 +119,6 @@ class analyzer:
             jet_m = np.append( jet_m,self.df.ix[indices[i],'jet_m_'+str(jet_i)].values )
             jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
             jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_df[i].ix[indices[i],'jet_dressed_m_0'].values,axis=0)
+        print('len(jet_pt) = %i, sumw = %f'%(len(jet_pt),np.sum(jet_weight)))
         response = jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
         plotters.plot_response(response,region_string,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
