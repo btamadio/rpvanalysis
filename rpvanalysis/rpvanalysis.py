@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import jitfunctions
 import ROOT
 import array
+import random
+import string
 
 class analyzer:
     def __init__(self,file_name):
@@ -154,7 +156,8 @@ class analyzer:
         ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasStyle.C')
         ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasLabels.C')
         ROOT.SetAtlasStyle()
-        c = ROOT.TCanvas('c','c',800,600)
+        can_name = 'c_'+self.get_random_string()
+        c = ROOT.TCanvas(can_name,can_name,800,800)
         c.cd()
         n_bins = len(self.pt_bins)-1
         kin_hist = ROOT.TH1F('kin_hist','kin_hist',n_bins,array.array('d',self.pt_bins))
@@ -166,6 +169,8 @@ class analyzer:
             kin_hist.SetBinContent(bin,kin_mean[i])
             kin_hist.SetBinError(bin,err[i])
             dressed_hist.SetBinContent(bin,dressed_mean[i])
+#            print(bin,kin_mean[i],dressed_mean[i],err[i])
+        print('plotting...')
         dressed_hist.Draw()
         dressed_hist.SetMinimum(0.0)
         dressed_hist.SetMaximum(0.25)
@@ -179,7 +184,7 @@ class analyzer:
         kin_hist.SetMarkerStyle(20)
         kin_hist.SetMarkerSize(0.01)
 
-        c.Modified()
+#        c.Modified()
         c.Update()
 
     def get_response(self,region_string):
@@ -201,3 +206,5 @@ class analyzer:
             jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_df[i].ix[indices[i],'jet_dressed_m_0'].values,axis=0)
         return jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
         
+    def get_random_string(self,N=10):
+        return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
