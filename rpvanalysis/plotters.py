@@ -49,7 +49,7 @@ def get_region_label(region_str):
         label = '#splitline{#splitline{#splitline{'+lines[0]+'}{'+lines[1]+'}}{#splitline{'+lines[2]+'}{'+lines[3]+'}}}{'+lines[4]+'}'
     return label
 
-def plot_response(response,plot_path,region_str,pt_bins,lumi_label='36.45',mc_label='',eta_bin=-1):
+def plot_response(response,plot_path,region_str,pt_bins,lumi_label='36.5',mc_label='',eta_bin=-1):
     dressed_mean,kin_mean,err = response
 
     rand_str = get_random_string()

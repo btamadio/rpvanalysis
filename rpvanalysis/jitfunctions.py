@@ -34,6 +34,7 @@ def apply_get_temp_bin(col_pt,col_eta,col_bmatch,pt_bins,eta_bins):
     assert len(col_pt)==len(col_eta)==n
     for i in range(n):
         result[i] = get_temp_bin(col_pt[i],abs(col_eta[i]),col_bmatch[i],pt_bins,eta_bins)
+
     return result
 
 
@@ -68,18 +69,18 @@ def apply_get_dressed_mass(col_pt,col_temp_bin,templates_array,templates_neff_ar
             result[i][j] = np.exp(r)*col_pt[i]
     return result
 
-@numba.jit#(nopython=True)
+@numba.jit(nopython=True)
 def apply_get_mass_response(col_pt,col_eta,col_m,col_weight,col_dressed_m,pt_bins):
     n = len(col_pt)
     assert n == len(col_eta) == len(col_m) == len(col_weight) == len(col_dressed_m)
-
+    n_toys = len(col_dressed_m[0])
     dressed_mean = np.zeros(len(pt_bins) - 1)
     kin_mean = np.zeros(len(pt_bins) - 1)
     kin_std = np.zeros( len(pt_bins) -1)
 
     sumw = np.zeros(len(pt_bins) - 1)
     sumw2 = np.zeros(len(pt_bins) -1) 
-    err = np.zeros(len(pt_bins) -1) 
+    err = np.zeros(len(pt_bins) -1)
  
     #Calculate x_bar for each pt bin
     for i in range(n):
@@ -88,21 +89,19 @@ def apply_get_mass_response(col_pt,col_eta,col_m,col_weight,col_dressed_m,pt_bin
         kin_mean[pt_bin] += col_m[i]*col_weight[i]
         sumw[pt_bin] += col_weight[i]
         sumw2[pt_bin] += col_weight[i]*col_weight[i]
-
-        dressed_mean[pt_bin] += col_dressed_m[i]*col_weight[i]
+        for j in range(n_toys):
+            dressed_mean[pt_bin] += col_dressed_m[i][j]*col_weight[i]
     
-    dressed_mean = dressed_mean / sumw
+    dressed_mean = dressed_mean / (sumw*n_toys)
     kin_mean = kin_mean / sumw
 
     #Calculate std for each pt bin
     for i in range(n):
         pt_bin = get_pt_bin(col_pt[i],pt_bins)
         kin_std[pt_bin] += col_weight[i]*(col_m[i]-kin_mean[pt_bin])*(col_m[i]-kin_mean[pt_bin])
-        #kin_std += col_weight[i]*(col_m[i]-kin_mean[pt_bin])*(col_m[i]-kin_mean[pt_bin])
     
     kin_std = np.sqrt(kin_std / (sumw-1))
     n_eff = sumw*sumw/sumw2
-    print(n_eff,sumw)
     err = kin_std/np.sqrt(n_eff)
 
     return(dressed_mean,kin_mean,err)

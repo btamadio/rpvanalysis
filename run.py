@@ -13,4 +13,4 @@ a.create_templates()
 a.verify_templates()
 a.compute_dressed_masses()
 
-#a.plot_response(a.get_response('4js1VRb9bU'),'4js1VRb9bU',-1)
+a.plot_response(a.get_response('4js1VRb9bU'),'4js1VRb9bU',-1)

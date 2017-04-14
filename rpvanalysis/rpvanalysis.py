@@ -10,10 +10,10 @@ import ROOT
 
 class analyzer:
     def __init__(self):
-        self.n_toys = 1
+        self.n_toys = 100
         self.web_path = '/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/'
         self.date = '04_13'
-        self.job_name = 'signal_subtraction_403566'
+        self.job_name = 'data'
         self.plot_path = self.web_path + self.date + '_' + self.job_name + '/'
         print(' Output path for plots: %s ' % self.plot_path )
         os.system(' mkdir -p %s'%self.plot_path)
@@ -165,7 +165,7 @@ class analyzer:
         jet_eta = self.df.ix[indices[0],'jet_eta_1'].values
         jet_m = self.df.ix[indices[0],'jet_m_1'].values
         jet_weight = self.df.ix[indices[0],'weight'].values
-        jet_dressed_m = self.dressed_mass_df[0].ix[indices[0],'jet_dressed_m_0'].values
+        jet_dressed_m = self.dressed_mass_df[0].ix[indices[0]].as_matrix()
 
         for i in range(1,len(indices)):
             jet_i = i+1
@@ -173,12 +173,11 @@ class analyzer:
             jet_eta = np.append( jet_eta,self.df.ix[indices[i],'jet_eta_'+str(jet_i)].values )
             jet_m = np.append( jet_m,self.df.ix[indices[i],'jet_m_'+str(jet_i)].values )
             jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
-            jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_df[i].ix[indices[i],'jet_dressed_m_0'].values,axis=0)
+            jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_df[i].ix[indices[i]].as_matrix(),axis=0)
         return jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
-        #plotters.plot_response(response,self.plot_path,region_string,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
     def plot_response(self,response,region_str,eta_bin):
         plotters.plot_response(response,self.plot_path,region_str,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
-        os.system('chmod a+rx %s%s/*' % (self.plot_path,region_string))
+#        os.system('chmod a+rx %s%s/*' % (self.plot_path,region_string))
     def verify_templates(self):
         print('Verifying templates')
         for key in sorted(self.templates.keys()):
