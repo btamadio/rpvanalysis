@@ -3,13 +3,15 @@ import numpy as np
 class template:
     def __init__(self,n_bins,df_temps,temp_bin,x_min=-7,x_max=0):
         #print('Creating template for bin %i '% temp_bin)
+
+        self.sumw_neg,bin_edges_neg=np.histogram(a=[],range=(x_min,x_max),bins=n_bins)
         self.sumw,self.bin_edges=np.histogram(a=[],range=(x_min,x_max),bins=n_bins)
         self.sumw2,self.bin_edges2=np.histogram(a=[],range=(x_min,x_max),bins=n_bins)
 
+        self.sumw_neg=self.sumw_neg.astype(float)
         self.sumw=self.sumw.astype(float)
         self.sumw2=self.sumw2.astype(float)
-
-        self.bin_centers = np.zeros(n_bins)
+        
         for i in range(len(df_temps)):
             try:
                 this_df = df_temps[i].ix[temp_bin]
@@ -19,6 +21,7 @@ class template:
             temp_wts = this_df.weight
             temp_sumw,temp_bin_edges = np.histogram(a=temp_vals,weights=temp_wts,range=(x_min,x_max),bins=n_bins)
             temp_sumw2,temp_bin_edges2 = np.histogram(a=temp_vals,weights=temp_wts*temp_wts,range=(x_min,x_max),bins=n_bins)
+            self.sumw_neg += temp_sumw
             self.sumw += temp_sumw
             self.sumw2 += temp_sumw2
         #normalize to 1 so it can be used as PDF
@@ -26,9 +29,10 @@ class template:
             if sumw<0:
                 print ('Warning: setting negative template bin height to zero.')
                 print ('   template %i, bin %i, value %.2f'%(temp_bin,i,sumw) )
-            self.sumw[i] = 0
+                self.sumw[i] = 0
         self.probs = self.sumw / self.sumw.sum()
-
+        self.probs_neg = self.sumw_neg / self.sumw.sum()
+        self.bin_centers = np.zeros(n_bins).astype(float)
         for i in range(n_bins):
             self.bin_centers[i] = (self.bin_edges[i+1]+self.bin_edges[i])/2
         self.n_eff = self.sumw*self.sumw/self.sumw2
@@ -75,8 +79,10 @@ def get_region_index(df,region_string,eta_min=0,eta_max=2):
 
     #If we don't select on any jet-level observables, just return the list of indices as-is
     if (not 'bU' in region_string) and (not 'bM' in region_string) and eta_min == 0 and eta_max == 2:
+        print('no jet-level selection. indices are same for all %i jets'%njet)
         return [ df[mask].index for _ in range(njet) ]
 
+    print('jet-level selection. indices will be different for each jet')
     #If we ask for eta cuts or b-matching, need to get different indices for each jet
     masks = [ mask for _ in range(njet)]
     if 'bU' in region_string:

@@ -54,21 +54,21 @@ def apply_get_dressed_mass(col_pt,col_temp_bin,templates_array,templates_neff_ar
     result = np.zeros( (n,n_toys) )
     for i in range(n):
         #Poisson fluctuate each template bin
-        probs = np.zeros( n_bins )
-        for j in range(n_bins):
-            n_eff = templates_neff_array[col_temp_bin[i]][j]
-            sumw = templates_array[col_temp_bin[i]][j]
-            probs[j] = sumw
+        probs = templates_array[col_temp_bin[i]]#np.zeros( n_bins )
+#        for j in range(n_bins):
+#            n_eff = templates_neff_array[col_temp_bin[i]][j]
+#            sumw = templates_array[col_temp_bin[i]][j]
+#            probs[j] = sumw
             #probs[j] = (np.random.poisson( n_eff ) / n_eff) * sumw
-        probs = probs / probs.sum()
-        assert abs( probs.sum() - 1 ) < 1e-6
+#        probs = probs / probs.sum()
+#        assert abs( probs.sum() - 1 ) < 1e-6
         #probs = probs_array[col_temp_bin[i]]
         for j in range(n_toys):
             r = sample_from_cdf(np.random.random(),probs,bin_centers,bin_edges)
             result[i][j] = np.exp(r)*col_pt[i]
     return result
 
-@numba.jit(nopython=True)
+@numba.jit#(nopython=True)
 def apply_get_mass_response(col_pt,col_eta,col_m,col_weight,col_dressed_m,pt_bins):
     n = len(col_pt)
     assert n == len(col_eta) == len(col_m) == len(col_weight) == len(col_dressed_m)
@@ -80,7 +80,7 @@ def apply_get_mass_response(col_pt,col_eta,col_m,col_weight,col_dressed_m,pt_bin
     sumw = np.zeros(len(pt_bins) - 1)
     sumw2 = np.zeros(len(pt_bins) -1) 
     err = np.zeros(len(pt_bins) -1) 
-
+ 
     #Calculate x_bar for each pt bin
     for i in range(n):
         pt_bin = get_pt_bin(col_pt[i],pt_bins)
@@ -97,10 +97,12 @@ def apply_get_mass_response(col_pt,col_eta,col_m,col_weight,col_dressed_m,pt_bin
     #Calculate std for each pt bin
     for i in range(n):
         pt_bin = get_pt_bin(col_pt[i],pt_bins)
-        kin_std += col_weight[i]*(col_m[i]-kin_mean[pt_bin])*(col_m[i]-kin_mean[pt_bin])
+        kin_std[pt_bin] += col_weight[i]*(col_m[i]-kin_mean[pt_bin])*(col_m[i]-kin_mean[pt_bin])
+        #kin_std += col_weight[i]*(col_m[i]-kin_mean[pt_bin])*(col_m[i]-kin_mean[pt_bin])
     
     kin_std = np.sqrt(kin_std / (sumw-1))
     n_eff = sumw*sumw/sumw2
+    print(n_eff,sumw)
     err = kin_std/np.sqrt(n_eff)
 
     return(dressed_mean,kin_mean,err)

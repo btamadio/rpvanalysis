@@ -172,6 +172,9 @@ def plot_hist(h):
     plt.show()
 
 def plot_template(t):
-    plt.figure()
-    h = (t.probs,t.bin_edges)
-    plot_hist(h)
+    h = (t.sumw_neg,t.bin_edges)
+    plt.bar(h[1][:-1],h[0],width=h[1][1]-h[1][0])
+    plt.xlabel('$log(m/p_T)$')
+    plt.ylabel('jets')
+    plt.show()
+    

@@ -12,13 +12,13 @@ class analyzer:
     def __init__(self):
         self.n_toys = 1
         self.web_path = '/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/'
-        self.date = '04_12'
-        self.job_name = 'pythia'
+        self.date = '04_13'
+        self.job_name = 'signal_subtraction_403566'
         self.plot_path = self.web_path + self.date + '_' + self.job_name + '/'
         print(' Output path for plots: %s ' % self.plot_path )
         os.system(' mkdir -p %s'%self.plot_path)
         os.system(' chmod a+rx %s'%self.plot_path)
-        self.mc_label = 'Pythia'
+        self.mc_label = ''
         self.lumi_label = '36.5'
         self.mc_lumi = 36.45
         self.n_template_bins = 50
@@ -33,7 +33,7 @@ class analyzer:
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
-        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=400000)
+        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])
         if is_mc:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
@@ -47,7 +47,10 @@ class analyzer:
     def read_sig_from_root(self,file_name):
         self.sig_df = self.root_to_df(file_name)
         self.sig_df['weight'] *= self.mc_lumi
-
+        start_ind = self.bkg_df.index.max()+1
+        len_ind = len(self.sig_df)
+        self.sig_df.index = np.arange(start_ind,start_ind+len_ind)
+        
     def inject_sig(self,dsid,mult=1):
         if self.sig_df is None:
             print(' No signal events have been read. Run read_sig_from_root first')
@@ -112,11 +115,7 @@ class analyzer:
             self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))
 
     def create_templates(self):
-        #TODO: optimize with JIT and make use of get_region_index function
-
-        #Create template histograms from CR
         print('Creating templates from control region')
-        #mark the control region jets
         for i in range(1,5):
             mask = self.df['njet']==3
             mask &= (self.df['jet_bmatched_'+str(i)]==0) | (self.df['jet_bmatched_'+str(i)]==1)&(self.df['dEta']>1.4)
@@ -132,7 +131,7 @@ class analyzer:
                 for eta_bin in range(len(self.eta_bins)-1):
                     key = 60*bmatch+4*pt_bin+eta_bin
                     self.templates[key] = helpers.template(self.n_template_bins,df_temps,key,self.template_min,self.template_max)
-                    self.templates_array[key]=self.templates[key].sumw
+                    self.templates_array[key]=self.templates[key].probs
                     self.templates_neff_array[key]=self.templates[key].n_eff
 
     def compute_dressed_masses(self):
@@ -148,7 +147,7 @@ class analyzer:
                                                          self.n_toys)
             self.dressed_mass_df.append(pd.DataFrame(result,index=self.df.index,columns=['jet_dressed_m_'+str(j) for j in range(self.n_toys)]))
 
-    def make_response_plot(self,region_string,eta_bin=-1):
+    def get_response(self,region_string,eta_bin=-1):
         print('Generating response plots for region %s'%region_string)
         eta_min = 0
         eta_max = 2
@@ -175,10 +174,11 @@ class analyzer:
             jet_m = np.append( jet_m,self.df.ix[indices[i],'jet_m_'+str(jet_i)].values )
             jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
             jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_df[i].ix[indices[i],'jet_dressed_m_0'].values,axis=0)
-        response = jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
-        plotters.plot_response(response,self.plot_path,region_string,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
+        return jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
+        #plotters.plot_response(response,self.plot_path,region_string,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
+    def plot_response(self,response,region_str,eta_bin):
+        plotters.plot_response(response,self.plot_path,region_str,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
         os.system('chmod a+rx %s%s/*' % (self.plot_path,region_string))
-
     def verify_templates(self):
         print('Verifying templates')
         for key in sorted(self.templates.keys()):
