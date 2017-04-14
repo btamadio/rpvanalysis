@@ -11,7 +11,7 @@ import ROOT
 class analyzer:
     def __init__(self):
         self.n_toys = 100
-        self.web_path = '/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/'
+        self.web_path = ''#/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/'
         self.date = '04_13'
         self.job_name = 'data'
         self.plot_path = self.web_path + self.date + '_' + self.job_name + '/'
