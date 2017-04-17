@@ -79,10 +79,10 @@ def get_region_index(df,region_string,eta_min=0,eta_max=2):
 
     #If we don't select on any jet-level observables, just return the list of indices as-is
     if (not 'bU' in region_string) and (not 'bM' in region_string) and eta_min == 0 and eta_max == 2:
-        print('no jet-level selection. indices are same for all %i jets'%njet)
+#        print('no jet-level selection. indices are same for all %i jets'%njet)
         return [ df[mask].index for _ in range(njet) ]
 
-    print('jet-level selection. indices will be different for each jet')
+#    print('jet-level selection. indices will be different for each jet')
     #If we ask for eta cuts or b-matching, need to get different indices for each jet
     masks = [ mask for _ in range(njet)]
     if 'bU' in region_string:

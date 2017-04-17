@@ -4,11 +4,12 @@ import ROOT
 import array
 import matplotlib.pyplot as plt
 import numpy as np
-#ROOT.gROOT.SetBatch()
+import os
+
 ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasStyle.C')
 ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasLabels.C')
 ROOT.SetAtlasStyle()
-
+ROOT.gROOT.SetBatch()
 def get_random_string(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
@@ -49,13 +50,10 @@ def get_region_label(region_str):
         label = '#splitline{#splitline{#splitline{'+lines[0]+'}{'+lines[1]+'}}{#splitline{'+lines[2]+'}{'+lines[3]+'}}}{'+lines[4]+'}'
     return label
 
-def plot_response(response,plot_path,region_str,pt_bins,lumi_label='36.5',mc_label='',eta_bin=-1):
+def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5',mc_label='',eta_bin=-1):
     dressed_mean,kin_mean,err = response
-
     rand_str = get_random_string()
-    can_name = 'c_'+rand_str
-    c = ROOT.TCanvas(can_name,can_name,800,800)
-    c.cd()      
+    canvas.cd()      
     p1 = ROOT.TPad('p1_'+rand_str,'p1_'+rand_str,0,0.3,1,1.0)
     p1.SetBottomMargin(0.01)
     p1.Draw()
@@ -121,7 +119,7 @@ def plot_response(response,plot_path,region_str,pt_bins,lumi_label='36.5',mc_lab
     leg.SetFillStyle(0)
     leg.SetFillColor(0)
     leg.Draw()
-    c.cd()
+    canvas.cd()
 
     #ratio plot
     p2 = ROOT.TPad('p2_'+rand_str,'p2_'+rand_str,0,0.05,1,0.3)
@@ -158,14 +156,12 @@ def plot_response(response,plot_path,region_str,pt_bins,lumi_label='36.5',mc_lab
     ratio_hist.GetXaxis().SetLabelFont(43)
     ratio_hist.GetXaxis().SetLabelSize(15)
     ratio_hist.GetXaxis().SetTitle('jet p_{T} [TeV]')
-#    c.cd()
-#    c.Update()
-#    c.Modified()
+    canvas.Update()
     file_name = 'plot_mass_response.png'
     full_path = plot_path+region_str+'/'+file_name
     print('Saving plot to %s'%full_path)
-    c.Print(full_path)
-
+    canvas.Print(full_path)
+    os.system('chmod a+r %s%s/*' % (plot_path,region_str))
 def plot_hist(h):
     plt.figure()
     plt.bar(h[1][:-1],h[0],width=h[1][1]-h[1][0])

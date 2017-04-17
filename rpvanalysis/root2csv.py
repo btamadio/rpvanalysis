@@ -8,6 +8,7 @@ class root2csv:
         self.tree = self.in_file.Get(tree_name)
         self.n_entries = self.tree.GetEntries()
         print('Converting root file: %s'%in_file_name)
+        print('output file: %s'%out_file_name)
         print('Number of entries: %i'%self.n_entries)
     def loop(self):
         feature_list = ['eventNumber','njet','njet_soft','nbjet_Fix70','MJ','dEta','weight',
@@ -38,9 +39,4 @@ class root2csv:
                         value = getattr(self.tree,feature)
                         row.append(value)
                 writer.writerow(row)
-
-r2c=root2csv('../bkgEstimation/samples/03_24_trigcompare/largeR_data_full.root','data_largeR.csv')
-r2c.loop()
-#r2c = root2csv('../bkgEstimation/samples/pythia_combined_mass/main_pythia_combined_mass.root','pythia_2.csv')
-#r2c.loop()
         

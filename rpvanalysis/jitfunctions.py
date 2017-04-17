@@ -54,19 +54,30 @@ def apply_get_dressed_mass(col_pt,col_temp_bin,templates_array,templates_neff_ar
     assert n == len(col_temp_bin)
     result = np.zeros( (n,n_toys) )
     for i in range(n):
-        #Poisson fluctuate each template bin
-        probs = templates_array[col_temp_bin[i]]#np.zeros( n_bins )
-#        for j in range(n_bins):
-#            n_eff = templates_neff_array[col_temp_bin[i]][j]
-#            sumw = templates_array[col_temp_bin[i]][j]
-#            probs[j] = sumw
-            #probs[j] = (np.random.poisson( n_eff ) / n_eff) * sumw
-#        probs = probs / probs.sum()
-#        assert abs( probs.sum() - 1 ) < 1e-6
-        #probs = probs_array[col_temp_bin[i]]
+        probs = templates_array[col_temp_bin[i]]
         for j in range(n_toys):
             r = sample_from_cdf(np.random.random(),probs,bin_centers,bin_edges)
             result[i][j] = np.exp(r)*col_pt[i]
+    return result
+
+@numba.jit(nopython=True)
+def get_uncert_bin( temp_bin ):
+    eta_bin = temp_bin % 4
+    bmatch = 0
+    if temp_bin > 59:
+        bmatch = 1
+    return eta_bin + 4*bmatch
+
+@numba.jit(nopython=True)
+def apply_shift_mass(mass_matrix,col_jet_temp_bin,jet_uncert):
+    n = len(col_jet_temp_bin)
+    n_toys = mass_matrix.shape[1]
+    assert mass_matrix.shape[0] == n
+    result = np.copy(mass_matrix)#np.zeros( mass_matrix.shape )
+    for i in range(n):
+        uncert_bin = get_uncert_bin( col_jet_temp_bin[i] )
+        for j in range(n_toys):
+            result[i][j] *= (1 + jet_uncert[uncert_bin] )
     return result
 
 @numba.jit(nopython=True)
