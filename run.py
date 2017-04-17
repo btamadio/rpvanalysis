@@ -1,18 +1,35 @@
 #!/usr/bin/env python
 import rpvanalysis
+import json
+import sys
+
+if len(sys.argv) < 2:
+    print('Must specify configuration file.')
+    sys.exit(1)
+print(sys.argv[1])
+
+with open(sys.argv[1]) as f:
+    config = json.load(f)
 
 a = rpvanalysis.analyzer()
-a.date='04_17'
-a.job_name='data_HT_trig'
+
+a.date=config['date']
+a.job_name=config['job_name']
+a.web_path = config['web_path']
+
 a.make_plot_dir()
-a.read_bkg_from_csv('data_HT.csv',is_mc=False)
-#a.read_sig_from_root('../bkgEstimation/samples/RPV10_largeRtrig/RPV_RPV10_largeRtrig_11.root')
-#a.inject_sig(403566,mult=-1)
+
+a.read_bkg_from_csv(config['bkg_file'],is_mc=config['is_mc'])
+
+if config['inject_sig']:
+    a.read_sig_from_root(config['sig_file'])
+    a.inject_sig(config['sig_dsid'],config['sig_mult'])
 
 a.compute_temp_bins()
 a.create_templates()
 a.verify_templates()
-a.compute_dressed_masses(100)
+a.compute_dressed_masses(config['n_toys'])
 a.compute_uncertainties()
-#a.compute_dressed_masses(100)
-a.plot_response('4js1VRb9bU')
+a.compute_dressed_masses(config['n_toys'])
+
+[a.plot_response(region_str) for region_str in config['response_plots']]

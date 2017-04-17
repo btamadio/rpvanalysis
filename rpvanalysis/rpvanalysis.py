@@ -10,8 +10,7 @@ import ROOT
 
 class analyzer:
     def __init__(self):
-#        self.n_toys = 1
-        self.web_path = '/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/'
+        self.web_path = ''
         self.date = ''
         self.job_name = ''
         self.mc_label = ''
@@ -28,7 +27,7 @@ class analyzer:
         self.eta_bins = np.array([0.0,0.5,1.0,1.5,2.0])
         print('Setting up analysis')
     def make_plot_dir(self):
-        self.plot_path = self.web_path + self.date + '_' + self.job_name + '/'
+        self.plot_path = self.web_path + '/'+self.date + '_' + self.job_name + '/'
         print('Creating output directory: %s ' % self.plot_path )
         os.system(' mkdir -p %s'%self.plot_path)
         os.system(' chmod a+rx %s'%self.plot_path)
@@ -39,7 +38,8 @@ class analyzer:
         if is_mc:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
-
+        print(' Read %i raw events from file' % len(self.bkg_df) )
+    
     def read_bkg_from_root(self,file_name,is_mc=True):
         self.bkg_df = self.root_to_df(file_name)
         if is_mc:
@@ -197,8 +197,10 @@ class analyzer:
         rand_str = plotters.get_random_string()
         can_name = 'c_'+rand_str
         self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
-        os.system('mkdir -p %s/%s' % (self.plot_path,region_str))
-        os.system('chmod a+rx %s/%s' % (self.plot_path,region_str))
+        full_path = self.plot_path + region_str
+        print('Creating directory %s'%full_path)
+        os.system('mkdir -p %s'%full_path)#%s' % (self.plot_path,region_str))
+        os.system('chmod a+rx %s' % (full_path))
         response = self.get_response(region_str,eta_bin)
         plotters.plot_response(response,self.plot_path,self.canvas,region_str,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
     def verify_templates(self):

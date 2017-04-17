@@ -158,10 +158,10 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5'
     ratio_hist.GetXaxis().SetTitle('jet p_{T} [TeV]')
     canvas.Update()
     file_name = 'plot_mass_response.png'
-    full_path = plot_path+region_str+'/'+file_name
+    full_path = plot_path+'/'+region_str+'/'+file_name
     print('Saving plot to %s'%full_path)
     canvas.Print(full_path)
-    os.system('chmod a+r %s%s/*' % (plot_path,region_str))
+    os.system('chmod a+r %s/%s/*' % (plot_path,region_str))
 def plot_hist(h):
     plt.figure()
     plt.bar(h[1][:-1],h[0],width=h[1][1]-h[1][0])
