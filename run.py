@@ -16,9 +16,10 @@ a = rpvanalysis.analyzer()
 a.date=config['date']
 a.job_name=config['job_name']
 a.web_path = config['web_path']
+if config['is_mc']:
+    a.mc_label = config['mc_label']
 
 a.make_plot_dir()
-
 a.read_bkg_from_csv(config['bkg_file'],is_mc=config['is_mc'])
 
 if config['inject_sig']:
@@ -31,5 +32,7 @@ a.verify_templates()
 a.compute_dressed_masses(config['n_toys'])
 a.compute_uncertainties()
 a.compute_dressed_masses(config['n_toys'])
-
-[a.plot_response(region_str) for region_str in config['response_plots']]
+if 'response_plots' in config:
+    [a.plot_response(region_str) for region_str in config['response_plots']]
+if 'mass_plots' in config:
+    [a.plot_mass(region_str) for region_str in config['response_plots']]

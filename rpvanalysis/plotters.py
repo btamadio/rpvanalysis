@@ -96,7 +96,7 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5'
     #various labels
     ROOT.ATLASLabel(0.25,0.85,'Internal',0.05,0.115,1)
     lat = ROOT.TLatex()
-    if not mc_label == '':
+    if mc_label:
         lat.DrawLatexNDC(0.25,0.78,lumi_label+' fb^{-1} '+mc_label)
     else:
         lat.DrawLatexNDC(0.25,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')

@@ -4,6 +4,7 @@
 "bkg_file": "data/largeR_trig/pythiaJZ_sherpa.csv",
 "web_path": "/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/",
 "is_mc": true,
+"mc_label": "Pythia + Sherpa"
 "n_toys": 100, 
 "inject_sig": false,
 "sig_files": [],

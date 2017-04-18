@@ -193,6 +193,18 @@ class analyzer:
             jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
             jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_nom[i].ix[indices[i]].as_matrix(),axis=0)
         return jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
+    def plot_mass(self,region_str):
+        pass
+        # rand_str = plotters.get_random_string()
+        # can_name = 'c_'+rand_str
+        # self.canvas = ROOT.TCanvas(can_name,can_name,800,600)
+        # full_path = self.plot_path + region_str
+        # print('Creating directory %s'%full_path)
+        # os.system('mkdir -p %s'%full_path)#%s' % (self.plot_path,region_str))
+        # os.system('chmod a+rx %s' % (full_path))
+        # indices = helpers.get_region_index(self.df,region_str)
+        
+
     def plot_response(self,region_str,eta_bin=-1):
         rand_str = plotters.get_random_string()
         can_name = 'c_'+rand_str
