@@ -16,16 +16,20 @@ class analyzer:
         self.mc_label = ''
         self.lumi_label = '36.5'
         self.mc_lumi = 36.45
+        self.mj_cut = 0.8
         self.n_template_bins = 50
         self.template_min = -7
         self.template_max = 0
         self.templates = {}
+        self.norm_region = (0.2,0.4)
         self.jet_uncert = np.zeros(8)
         self.templates_array = np.zeros((120,50))
         self.templates_neff_array = np.zeros((120,50))
         self.pt_bins = np.array([0.2,0.221,0.244,0.270,0.293,0.329,0.364,0.402,0.445,0.492,0.544,0.6,0.644,0.733,0.811,0.896])
         self.eta_bins = np.array([0.0,0.5,1.0,1.5,2.0])
+        self.MJ_bins =np.array([0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.40,0.45,0.5,0.6,0.8,1.0,2.0])
         print('Setting up analysis')
+
     def make_plot_dir(self):
         self.plot_path = self.web_path + '/'+self.date + '_' + self.job_name + '/'
         print('Creating output directory: %s ' % self.plot_path )
@@ -193,17 +197,22 @@ class analyzer:
             jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
             jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_nom[i].ix[indices[i]].as_matrix(),axis=0)
         return jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
-    def plot_mass(self,region_str):
-        pass
-        # rand_str = plotters.get_random_string()
-        # can_name = 'c_'+rand_str
-        # self.canvas = ROOT.TCanvas(can_name,can_name,800,600)
-        # full_path = self.plot_path + region_str
-        # print('Creating directory %s'%full_path)
-        # os.system('mkdir -p %s'%full_path)#%s' % (self.plot_path,region_str))
-        # os.system('chmod a+rx %s' % (full_path))
-        # indices = helpers.get_region_index(self.df,region_str)
-        
+
+    def plot_MJ(self,region_str):
+        rand_str = plotters.get_random_string()
+        can_name = 'c_'+rand_str
+        self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
+        full_path = self.plot_path + region_str
+        os.system('mkdir -p %s'%full_path)#%s' % (self.plot_path,region_str))
+        os.system('chmod a+rx %s' % (full_path))
+        index = helpers.get_region_index(self.df,region_str)[0]
+        kin_MJ = self.df.ix[index].MJ.values
+        dressed_MJ_nom = self.dressed_MJ_nom.ix[index].as_matrix()
+        dressed_MJ_shift = self.dressed_MJ_shift.ix[index].as_matrix()
+        weights = self.df.ix[index].weight.values
+
+        kin_sumw,kin_sumw2,dressed_nom_sumw,dressed_shift_sumw = jitfunctions.apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_shift,weights,self.MJ_bins)
+        print(kin_sumw,kin_sumw2,dressed_nom_sumw[0],dressed_shift_sumw[0])
 
     def plot_response(self,region_str,eta_bin=-1):
         rand_str = plotters.get_random_string()
@@ -224,3 +233,14 @@ class analyzer:
                     print (' template number %i, bin %i, prob = %f ' % (key,i,prob) )
             if abs(t.sum() -1) > 1e-6:
                 print(' template number %i, probabilities sum to %f'%abs(t.sum()-1))
+    
+    def compute_dressed_MJ(self):
+        self.dressed_MJ_nom = self.dressed_mass_nom[0]+self.dressed_mass_nom[1]+self.dressed_mass_nom[2]+self.dressed_mass_nom[3].fillna(0)
+        self.dressed_MJ_shift = self.dressed_mass_shift[0]+self.dressed_mass_shift[1]+self.dressed_mass_shift[2]+self.dressed_mass_shift[3].fillna(0)
+    
+    def get_scale_factor(self,region_str):
+        index = helpers.get_region_index(self.df,region_str)[0]
+        kin_MJ = self.df.ix[index].MJ.values
+        dressed_MJ = self.dressed_MJ_nom.ix[index].as_matrix()        
+        weights = self.df.ix[index].weight.values
+        return jitfunctions.apply_get_scale_factor(kin_MJ,dressed_MJ,weights,self.norm_region[0],self.norm_region[1])

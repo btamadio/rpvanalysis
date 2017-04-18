@@ -32,7 +32,13 @@ a.verify_templates()
 a.compute_dressed_masses(config['n_toys'])
 a.compute_uncertainties()
 a.compute_dressed_masses(config['n_toys'])
+
+a.compute_dressed_MJ()
+
+
 if 'response_plots' in config:
     [a.plot_response(region_str) for region_str in config['response_plots']]
 if 'mass_plots' in config:
-    [a.plot_mass(region_str) for region_str in config['response_plots']]
+    [a.plot_mass(region_str) for region_str in config['mass_plots']]
+if 'MJ_plots' in config:
+    [a.plot_MJ(region_str) for region_str in config['MJ_plots']]
