@@ -2,9 +2,9 @@ from __future__ import print_function
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import jitfunctions
-import plotters
-import helpers
+from rpvanalysis import jitfunctions
+from rpvanalysis import plotters
+from rpvanalysis import helpers
 import os
 import ROOT
 
