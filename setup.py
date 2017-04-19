@@ -11,7 +11,7 @@ config = {
     'download_url': '',
     'author_email': 'btamadio@gmail.com',
     'version': '0.1',
-    'install_requires': ['nose','pandas','numpy','numba'],
+    'install_requires': ['nose','pandas','numpy','numba','matplotlib'],
     'packages': ['rpvanalysis'],
     'scripts': [],
     'test_suite':'nose.collector',
