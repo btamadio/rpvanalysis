@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import rpvanalysis
+from rpvanalysis import rpvanalysis
 import json
 import sys
 
