@@ -127,18 +127,19 @@ def apply_get_mass_response(col_pt,col_eta,col_m,col_weight,col_dressed_m,pt_bin
     return(dressed_mean,kin_mean,err)
 
 @numba.jit(nopython=True)
-def apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_shift,weights,MJ_bins):
+def apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,MJ_bins):
     n = len(kin_MJ)
     n_toys = dressed_MJ_nom.shape[1]
     n_bins = len(MJ_bins)-1
-    assert n_toys == dressed_MJ_shift.shape[1]
-    assert n == dressed_MJ_nom.shape[0] == dressed_MJ_shift.shape[0] == len(weights)
+    n_systs = len(dressed_MJ_systs)
+    assert n_toys == dressed_MJ_systs[0].shape[1]
+    assert n == dressed_MJ_nom.shape[0] == dressed_MJ_systs[0].shape[0] == len(weights)
 
     kin_sumw = np.zeros(n_bins)
     kin_sumw2 = np.zeros(n_bins)
 
     dressed_nom_sumw = np.zeros((n_toys,n_bins))
-    dressed_shift_sumw = np.zeros((n_toys,n_bins))
+    dressed_syst_sumw = [ np.zeros((n_toys,n_bins)) for i in range(n_systs)]
 
     #Fill bins for kinematic and dressed samples
     for i in range(n):
@@ -148,9 +149,10 @@ def apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_shift,weights,MJ_bins):
         for j in range(n_toys):
             MJ_bin = get_MJ_bin(dressed_MJ_nom[i][j],MJ_bins)
             dressed_nom_sumw[j][MJ_bin] += weights[i]
-            MJ_bin = get_MJ_bin(dressed_MJ_shift[i][j],MJ_bins)
-            dressed_shift_sumw[j][MJ_bin] += weights[i]
-    return(kin_sumw,kin_sumw2,dressed_nom_sumw,dressed_shift_sumw)
+            for syst in range(n_systs):
+                MJ_bin = get_MJ_bin(dressed_MJ_syst[syst][i][j],MJ_bins)
+                dressed_syst_sumw[syst][j][MJ_bin] += weights[i]
+    return(kin_sumw,kin_sumw2,dressed_nom_sumw,dressed_syst_sumw)
 
 @numba.jit(nopython=True)
 def apply_get_scale_factor(kin_MJ,dressed_MJ,weights,norm_low,norm_high):
@@ -167,3 +169,26 @@ def apply_get_scale_factor(kin_MJ,dressed_MJ,weights,norm_low,norm_high):
             if dressed_MJ[i][j] > norm_low and dressed_MJ[i][j] < norm_high:
                 dressed_sumw += weights[i]
     return n_toys*kin_sumw/dressed_sumw
+
+@numba.jit(nopython=True)
+def apply_get_shifted_MJ(dm_nom_list,dm_shift_list,temp_list):
+    #dm_nom_list = n_jet x n_events x n_toys
+    #dm_shift_list = n_jet x n_events x n_toys
+    #temp_list = n_jet x n_events
+    #result = n_systs x n_events x n_toys
+    n_jet=dm_nom_list.shape[0]
+    n_systs = 8
+    n_events = dm_nom_list.shape[1]
+    n_toys = dm_nom_list.shape[2]
+    result = np.zeros( (n_systs,n_events,n_toys) )
+    for syst in range(n_systs):
+        for i in range(n_events):
+            for j in range(4):
+                if temp_list[j][i] != -1:
+                    uncert_bin = get_uncert_bin(temp_list[j][i])
+                    for toy in range(n_toys):
+                        if uncert_bin == syst:
+                            result[syst][i][toy] += dm_shift_list[j][i][toy]
+                        else:
+                            result[syst][i][toy] += dm_nom_list[j][i][toy]
+    return result

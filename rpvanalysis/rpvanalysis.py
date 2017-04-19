@@ -38,7 +38,7 @@ class analyzer:
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
-        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])
+        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=1000000)
         if is_mc:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
@@ -208,11 +208,11 @@ class analyzer:
         index = helpers.get_region_index(self.df,region_str)[0]
         kin_MJ = self.df.ix[index].MJ.values
         dressed_MJ_nom = self.dressed_MJ_nom.ix[index].as_matrix()
-        dressed_MJ_shift = self.dressed_MJ_shift.ix[index].as_matrix()
+        dressed_MJ_systs = [ self.dressed_MJ_syst[i].ix[index].as_matrix() for i in range(8) ]
         weights = self.df.ix[index].weight.values
-
-        kin_sumw,kin_sumw2,dressed_nom_sumw,dressed_shift_sumw = jitfunctions.apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_shift,weights,self.MJ_bins)
-        print(kin_sumw,kin_sumw2,dressed_nom_sumw[0],dressed_shift_sumw[0])
+        
+        MJ_hists = jitfunctions.apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_bins)
+#        plotters.plot_MJ(MJ_hists,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label)
 
     def plot_response(self,region_str,eta_bin=-1):
         rand_str = plotters.get_random_string()
@@ -236,7 +236,15 @@ class analyzer:
     
     def compute_dressed_MJ(self):
         self.dressed_MJ_nom = self.dressed_mass_nom[0]+self.dressed_mass_nom[1]+self.dressed_mass_nom[2]+self.dressed_mass_nom[3].fillna(0)
-        self.dressed_MJ_shift = self.dressed_mass_shift[0]+self.dressed_mass_shift[1]+self.dressed_mass_shift[2]+self.dressed_mass_shift[3].fillna(0)
+        dm_nom_list = np.array([self.dressed_mass_nom[i].fillna(0).as_matrix() for i in range(4)])
+        dm_shift_list = np.array([self.dressed_mass_shift[i].fillna(0).as_matrix() for i in range(4)])
+        temp_list = np.array([self.df['jet_temp_bin_'+str(i+1)].values for i in range(4)])
+        self.dressed_MJ_syst = jitfunctions.apply_get_shifted_MJ(dm_nom_list,dm_shift_list,temp_list)
+        #TODO: create 8 shifted MJ dataframes instead of just 1
+        # For each uncertainty region, only shift the jets that belong to that region
+#        
+
+        
     
     def get_scale_factor(self,region_str):
         index = helpers.get_region_index(self.df,region_str)[0]
