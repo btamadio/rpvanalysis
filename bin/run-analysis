@@ -1,4 +1,0 @@
-#!/usr/bin/env python
-import rpvanalysis
-import sys
-a = rpvanalysis.analyzer(sys.argv[1])

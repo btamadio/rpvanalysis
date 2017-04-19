@@ -16,7 +16,7 @@ config = {
     'scripts': [],
     'test_suite':'nose.collector',
     'tests_require':['nose'],
-    'scripts':['bin/run-analysis']
+    'scripts':[]
 }
 
 setup(**config)
