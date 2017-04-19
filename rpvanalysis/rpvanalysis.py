@@ -10,6 +10,7 @@ import ROOT
 
 class analyzer:
     def __init__(self):
+        self.n_systs=8
         self.web_path = ''
         self.date = ''
         self.job_name = ''
@@ -31,6 +32,7 @@ class analyzer:
         print('Setting up analysis')
 
     def make_plot_dir(self):
+        #Create directory for saving plots
         self.plot_path = self.web_path + '/'+self.date + '_' + self.job_name + '/'
         print('Creating output directory: %s ' % self.plot_path )
         os.system(' mkdir -p %s'%self.plot_path)
@@ -58,6 +60,7 @@ class analyzer:
         self.sig_df.index = np.arange(start_ind,start_ind+len_ind)
         
     def inject_sig(self,dsid,mult=1):
+        #Select signal events by DSID and scale by mult
         if self.sig_df is None:
             print(' No signal events have been read. Run read_sig_from_root first')
             return
@@ -128,7 +131,6 @@ class analyzer:
             self.df['jet_is_CR_'+str(i)] = mask.astype(int)
         df_temps = [None,None,None]
 
-        #create 3 reindexed data frames, each containingly only CR jets
         for i in range(1,4):
             jet_var_list = ['jet_temp_bin_'+str(i),'jet_m_'+str(i),'jet_pt_'+str(i),'jet_is_CR_'+str(i),'weight']
             df_temps[i-1] = self.df[self.df['jet_is_CR_'+str(i)]==1][jet_var_list].set_index(keys=['jet_temp_bin_'+str(i)])
@@ -139,7 +141,9 @@ class analyzer:
                     self.templates[key] = helpers.template(self.n_template_bins,df_temps,key,self.template_min,self.template_max)
                     self.templates_array[key]=self.templates[key].probs
                     self.templates_neff_array[key]=self.templates[key].n_eff
+
     def get_uncert(self,response):
+        #Uncertainty of a response = RMS
         dressed_mean = response[0]
         kin_mean = response[1]
         diff = (kin_mean - dressed_mean)/dressed_mean
@@ -148,6 +152,7 @@ class analyzer:
         return result
             
     def compute_uncertainties(self):
+        #Loop over UDRs and calculate uncertainties
         self.jet_uncert = []
         for bmatch in ['bU','bM']:
             for eta_bin in range(0,4):
@@ -208,9 +213,8 @@ class analyzer:
         index = helpers.get_region_index(self.df,region_str)[0]
         kin_MJ = self.df.ix[index].MJ.values
         dressed_MJ_nom = self.dressed_MJ_nom.ix[index].as_matrix()
-        dressed_MJ_systs = [ self.dressed_MJ_syst[i].ix[index].as_matrix() for i in range(8) ]
+        dressed_MJ_systs = np.array([ self.dressed_MJ_syst[i].ix[index].as_matrix() for i in range(self.n_systs) ])
         weights = self.df.ix[index].weight.values
-        
         MJ_hists = jitfunctions.apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_bins)
 #        plotters.plot_MJ(MJ_hists,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label)
 
@@ -239,13 +243,12 @@ class analyzer:
         dm_nom_list = np.array([self.dressed_mass_nom[i].fillna(0).as_matrix() for i in range(4)])
         dm_shift_list = np.array([self.dressed_mass_shift[i].fillna(0).as_matrix() for i in range(4)])
         temp_list = np.array([self.df['jet_temp_bin_'+str(i+1)].values for i in range(4)])
-        self.dressed_MJ_syst = jitfunctions.apply_get_shifted_MJ(dm_nom_list,dm_shift_list,temp_list)
-        #TODO: create 8 shifted MJ dataframes instead of just 1
-        # For each uncertainty region, only shift the jets that belong to that region
-#        
+        result = jitfunctions.apply_get_shifted_MJ(dm_nom_list,dm_shift_list,temp_list)
+        column_list = ['MJ_'+str(j) for j in range(self.n_toys)]
+        self.dressed_MJ_syst = []
+        for i in range(result.shape[0]):
+            self.dressed_MJ_syst.append(pd.DataFrame(result,index=self.df.index,columns=column_list))
 
-        
-    
     def get_scale_factor(self,region_str):
         index = helpers.get_region_index(self.df,region_str)[0]
         kin_MJ = self.df.ix[index].MJ.values

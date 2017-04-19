@@ -128,31 +128,40 @@ def apply_get_mass_response(col_pt,col_eta,col_m,col_weight,col_dressed_m,pt_bin
 
 @numba.jit(nopython=True)
 def apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,MJ_bins):
-    n = len(kin_MJ)
-    n_toys = dressed_MJ_nom.shape[1]
-    n_bins = len(MJ_bins)-1
-    n_systs = len(dressed_MJ_systs)
-    assert n_toys == dressed_MJ_systs[0].shape[1]
-    assert n == dressed_MJ_nom.shape[0] == dressed_MJ_systs[0].shape[0] == len(weights)
+    n_systs = dressed_MJ_systs.shape[0]
+    n_events = dressed_MJ_systs.shape[1]
+    n_toys = dressed_MJ_systs.shape[2]
+    n_bins = MJ_bins.shape[0]-1
+    assert n_events == kin_MJ.shape[0] == dressed_MJ_nom.shape[0] == weights.shape[0]
+    assert n_toys == dressed_MJ_nom.shape[1]
 
     kin_sumw = np.zeros(n_bins)
     kin_sumw2 = np.zeros(n_bins)
 
-    dressed_nom_sumw = np.zeros((n_toys,n_bins))
-    dressed_syst_sumw = [ np.zeros((n_toys,n_bins)) for i in range(n_systs)]
+    dress_nom_matrix = np.zeros( (n_toys,n_bins) )
+    dress_syst_matrix = np.zeros( (n_systs,n_toys,n_bins) )
 
     #Fill bins for kinematic and dressed samples
-    for i in range(n):
+    for i in range(n_events):
         MJ_bin = get_MJ_bin(kin_MJ[i],MJ_bins)
         kin_sumw[MJ_bin] += weights[i]
         kin_sumw2[MJ_bin] += weights[i]*weights[i]
         for j in range(n_toys):
-            MJ_bin = get_MJ_bin(dressed_MJ_nom[i][j],MJ_bins)
-            dressed_nom_sumw[j][MJ_bin] += weights[i]
-            for syst in range(n_systs):
-                MJ_bin = get_MJ_bin(dressed_MJ_syst[syst][i][j],MJ_bins)
-                dressed_syst_sumw[syst][j][MJ_bin] += weights[i]
-    return(kin_sumw,kin_sumw2,dressed_nom_sumw,dressed_syst_sumw)
+            MJ_bin = get_MJ_bin(dressed_MJ_nom[i][j])
+            dress_nom_matrix[j][MJ_bin] += weights[i]
+        for syst in range(n_systs):
+            for j in range(n_toys):
+                MJ_bin = get_MJ_bin(dressed_MJ_systs[syst][i][j],MJ_bins)
+                dress_syst_matrix[syst][j][MJ_bin] += weights[i]
+
+    dress_syst_sumw = np.zeros( (n_systs,n_bins) )
+    for syst in range(n_systs):
+        dress_syst_sumw[syst] = np.mean( dress_syst_matrix[syst], axis = 0)
+    kin_stat_err = np.sqrt( kin_sumw*kin_sumw / kin_sumw2 )
+    dress_nom_sumw = np.mean( dress_nom_matrix, axis = 0 )
+    dress_stat_err = np.std( dress_nom_matrix, axis = 0)
+
+    return(kin_sumw,kin_staterr,dress_nom_sumw,dress_stat_err,dress_syst_sumw)
 
 @numba.jit(nopython=True)
 def apply_get_scale_factor(kin_MJ,dressed_MJ,weights,norm_low,norm_high):
