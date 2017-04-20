@@ -147,21 +147,13 @@ def apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,MJ_bins):
         kin_sumw[MJ_bin] += weights[i]
         kin_sumw2[MJ_bin] += weights[i]*weights[i]
         for j in range(n_toys):
-            MJ_bin = get_MJ_bin(dressed_MJ_nom[i][j])
+            MJ_bin = get_MJ_bin(dressed_MJ_nom[i][j],MJ_bins)
             dress_nom_matrix[j][MJ_bin] += weights[i]
         for syst in range(n_systs):
             for j in range(n_toys):
                 MJ_bin = get_MJ_bin(dressed_MJ_systs[syst][i][j],MJ_bins)
                 dress_syst_matrix[syst][j][MJ_bin] += weights[i]
-
-    dress_syst_sumw = np.zeros( (n_systs,n_bins) )
-    for syst in range(n_systs):
-        dress_syst_sumw[syst] = np.mean( dress_syst_matrix[syst], axis = 0)
-    kin_stat_err = np.sqrt( kin_sumw*kin_sumw / kin_sumw2 )
-    dress_nom_sumw = np.mean( dress_nom_matrix, axis = 0 )
-    dress_stat_err = np.std( dress_nom_matrix, axis = 0)
-
-    return(kin_sumw,kin_staterr,dress_nom_sumw,dress_stat_err,dress_syst_sumw)
+    return ( kin_sumw, kin_sumw2, dress_nom_matrix, dress_syst_matrix )
 
 @numba.jit(nopython=True)
 def apply_get_scale_factor(kin_MJ,dressed_MJ,weights,norm_low,norm_high):

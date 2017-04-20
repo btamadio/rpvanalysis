@@ -40,7 +40,7 @@ class analyzer:
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
-        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=1000000)
+        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=400000)
         if is_mc:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
@@ -161,6 +161,7 @@ class analyzer:
                 self.jet_uncert.append( self.get_uncert( self.get_response( region_str,eta_bin )))
                 
     def compute_dressed_masses(self,n_toys=100):
+        self.n_toys=n_toys
         print('Generating dressed masses')
         self.dressed_mass_nom = []
         self.dressed_mass_shift = []
@@ -216,8 +217,8 @@ class analyzer:
         dressed_MJ_systs = np.array([ self.dressed_MJ_syst[i].ix[index].as_matrix() for i in range(self.n_systs) ])
         weights = self.df.ix[index].weight.values
         MJ_hists = jitfunctions.apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_bins)
-#        plotters.plot_MJ(MJ_hists,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label)
-
+        return plotters.plot_MJ(MJ_hists,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label)
+        
     def plot_response(self,region_str,eta_bin=-1):
         rand_str = plotters.get_random_string()
         can_name = 'c_'+rand_str
@@ -240,14 +241,15 @@ class analyzer:
     
     def compute_dressed_MJ(self):
         self.dressed_MJ_nom = self.dressed_mass_nom[0]+self.dressed_mass_nom[1]+self.dressed_mass_nom[2]+self.dressed_mass_nom[3].fillna(0)
+        column_list = ['MJ_'+str(j) for j in range(self.n_toys)]
+        self.dressed_MJ_nom.columns = column_list
         dm_nom_list = np.array([self.dressed_mass_nom[i].fillna(0).as_matrix() for i in range(4)])
         dm_shift_list = np.array([self.dressed_mass_shift[i].fillna(0).as_matrix() for i in range(4)])
         temp_list = np.array([self.df['jet_temp_bin_'+str(i+1)].values for i in range(4)])
         result = jitfunctions.apply_get_shifted_MJ(dm_nom_list,dm_shift_list,temp_list)
-        column_list = ['MJ_'+str(j) for j in range(self.n_toys)]
         self.dressed_MJ_syst = []
         for i in range(result.shape[0]):
-            self.dressed_MJ_syst.append(pd.DataFrame(result,index=self.df.index,columns=column_list))
+            self.dressed_MJ_syst.append(pd.DataFrame(result[i],index=self.df.index,columns=column_list))
 
     def get_scale_factor(self,region_str):
         index = helpers.get_region_index(self.df,region_str)[0]

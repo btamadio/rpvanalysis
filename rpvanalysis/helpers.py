@@ -37,19 +37,15 @@ class template:
             self.bin_centers[i] = (self.bin_edges[i+1]+self.bin_edges[i])/2
         self.n_eff = self.sumw*self.sumw/self.sumw2
         self.n_eff[ self.n_eff == np.nan ] = 0
-    def get_mean(self):
-        return np.sum( self.bin_centers*self.sumw ) / n_bins
-
-    def get_std_err(self):
-#        x_bar = self.get_mean()
-#        std = np.sum( self.
-        pass
 
 def get_region_index(df,region_string,eta_min=0,eta_max=2):
     #Given a region string, return a list corresponding to the index of jets for that region
     mask = None
     njet=0
-    if region_string.startswith('3j'):
+    if region_string.startswith('2j'):
+        mask = df['njet']==2
+        njet=2
+    elif region_string.startswith('3j'):
         mask = df['njet']==3
         njet=3
     elif region_string.startswith('4j'):
