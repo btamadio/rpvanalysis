@@ -217,7 +217,8 @@ class analyzer:
         dressed_MJ_systs = np.array([ self.dressed_MJ_syst[i].ix[index].as_matrix() for i in range(self.n_systs) ])
         weights = self.df.ix[index].weight.values
         MJ_hists = jitfunctions.apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_bins)
-        return plotters.plot_MJ(MJ_hists,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label)
+        scale_factor = self.get_scale_factor(region_str)
+        return plotters.plot_MJ(MJ_hists,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label)
         
     def plot_response(self,region_str,eta_bin=-1):
         rand_str = plotters.get_random_string()

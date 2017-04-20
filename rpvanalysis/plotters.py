@@ -9,13 +9,15 @@ import os
 ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasStyle.C')
 ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasLabels.C')
 ROOT.SetAtlasStyle()
-#ROOT.gROOT.SetBatch()
+ROOT.gROOT.SetBatch()
 def get_random_string(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
 def get_region_label(region_str):
     lines = []
-    if '3j' in region_str:
+    if '2j' in region_str:
+        lines.append('N_{jet} = 2')
+    elif '3j' in region_str:
         lines.append('N_{jet} = 3')
     elif '4j' in region_str:
         lines.append('N_{jet} = 4')
@@ -50,7 +52,7 @@ def get_region_label(region_str):
         label = '#splitline{#splitline{#splitline{'+lines[0]+'}{'+lines[1]+'}}{#splitline{'+lines[2]+'}{'+lines[3]+'}}}{'+lines[4]+'}'
     return label
 
-def plot_MJ(MJ_hists,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label):
+def plot_MJ(MJ_hists,scale_factor,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label):
     kin_sumw,kin_sumw2,dress_nom_matrix,dress_syst_matrix = MJ_hists
 
     n_systs = dress_syst_matrix.shape[0]
@@ -60,7 +62,6 @@ def plot_MJ(MJ_hists,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label):
     dress_nom_sumw = np.mean( dress_nom_matrix, axis=0)
     dress_stat_err = np.std( dress_nom_matrix, axis = 0)
     dress_syst_sumw = np.zeros( (n_systs,n_bins) )
-
 
     for i in range(n_systs):
         dress_syst_sumw[i] = np.mean( dress_syst_matrix[i], axis = 0)
@@ -94,6 +95,8 @@ def plot_MJ(MJ_hists,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label):
         dressed_hist_down.SetBinContent(bin,dressed_hist.GetBinContent(bin) - err_syst)
         err_hist.SetBinError(bin,tot_err)
     print('plotting...')
+    hist_list = [err_hist,dressed_hist,kin_hist,dressed_hist_up,dressed_hist_down]
+    [hist.Scale(scale_factor) for hist in hist_list]
 
     err_hist.SetMarkerSize(0.001)
     err_hist.SetLineColor(ROOT.kRed)
@@ -211,15 +214,14 @@ def plot_MJ(MJ_hists,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label):
                    ratio_dressed_hist_down,
                    lat,leg]
 
-    return return_list
     canvas.cd()
     canvas.Update()
     file_name = 'plot_MJ.png'
     full_path = plot_path+'/'+region_str+'/'+file_name
     print('Saving plot to %s'%full_path)
-#    canvas.Print(full_path)
-#    os.system('chmod a+r %s/%s/*' % (plot_path,region_str))
-    
+    canvas.Print(full_path)
+    os.system('chmod a+r %s/%s/*' % (plot_path,region_str))
+    return return_list    
 def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5',mc_label='',eta_bin=-1):
     dressed_mean,kin_mean,err = response
     rand_str = get_random_string()
@@ -232,8 +234,7 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5'
     n_bins = len(pt_bins)-1
     kin_hist = ROOT.TH1F('kin_hist','kin_hist',n_bins,array.array('d',pt_bins))
     dressed_hist = ROOT.TH1F('dressed_hist','dressed_hist',n_bins,array.array('d',pt_bins))
-    kin_hist.SetDirectory(0)
-    dressed_hist.SetDirectory(0)
+
     for i in range(n_bins):
         bin = i+1
         kin_hist.SetBinContent(bin,kin_mean[i])
@@ -256,7 +257,6 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5'
     kin_hist.Draw('same ep')
 
     dressed_hist.GetYaxis().SetTitle('<m_{jet}> [TeV]')
-
     dressed_hist.GetYaxis().SetTitleSize(20)
     dressed_hist.GetYaxis().SetTitleFont(43)
     dressed_hist.GetYaxis().SetTitleOffset(1.55)
@@ -326,12 +326,15 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5'
     ratio_hist.GetXaxis().SetLabelFont(43)
     ratio_hist.GetXaxis().SetLabelSize(15)
     ratio_hist.GetXaxis().SetTitle('jet p_{T} [TeV]')
+    canvas.cd()
     canvas.Update()
     file_name = 'plot_mass_response.png'
     full_path = plot_path+'/'+region_str+'/'+file_name
     print('Saving plot to %s'%full_path)
     canvas.Print(full_path)
     os.system('chmod a+r %s/%s/*' % (plot_path,region_str))
+    return (dressed_hist,kin_hist,ratio_hist,lat,leg)
+
 def plot_hist(h):
     plt.figure()
     plt.bar(h[1][:-1],h[0],width=h[1][1]-h[1][0])

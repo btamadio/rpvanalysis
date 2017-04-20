@@ -1,11 +1,11 @@
 {
 "date": "04_18",
-"job_name": "test_pythia",
+"job_name": "pythia",
 "bkg_file": "data/largeR_trig/pythia_JZW.csv",
 "web_path": "/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/",
 "is_mc": true,
 "mc_label": "Pythia",
-"n_toys": 10,
+"n_toys": 100,
 "inject_sig": false,
 "sig_files": [],
 "sig_mult": 0.0,
