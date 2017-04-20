@@ -156,6 +156,56 @@ def apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,MJ_bins):
     return ( kin_sumw, kin_sumw2, dress_nom_matrix, dress_syst_matrix )
 
 @numba.jit(nopython=True)
+def apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,MJ_cut):
+    n_systs = dressed_MJ_systs.shape[0]
+    n_events = dressed_MJ_systs.shape[1]
+    n_toys = dressed_MJ_systs.shape[2]
+    assert n_events == kin_MJ.shape[0] == dressed_MJ_nom.shape[0] == weights.shape[0]
+    assert n_toys == dressed_MJ_nom.shape[1]
+    kin_sumw = 0.0
+    kin_sumw2 = 0.0
+
+    pred_sumw = np.zeros( n_toys )
+    pred_sumw_systs = np.zeros( (n_systs,n_toys) )
+
+    for i in range(n_events):
+        if kin_MJ[i] > MJ_cut:
+            kin_sumw += weights[i]
+            kin_sumw2 += weights[i]*weights[i]
+        for j in range(n_toys):
+            if dressed_MJ_nom[i][j] > MJ_cut:
+                pred_sumw[j] += weights[i]
+            for k in range(n_systs):
+                if dressed_MJ_systs[k][i][j] > MJ_cut:
+                    pred_sumw_systs[k][j] += weights[i]
+    pred_stat = 0.0
+    pred_yield = 0.0
+    pred_yield_syst = np.zeros( n_systs )
+
+    #Calculate average nominal prediction
+    for j in range(n_toys):
+        pred_yield += pred_sumw[j]
+    pred_yield /= n_toys
+
+    #Calculate std. of nominal prediction over the toys
+    for j in range(n_toys):
+        pred_stat += (pred_yield - pred_sumw[j])*(pred_yield - pred_sumw[j])
+    pred_stat /= (n_toys - 1)
+    pred_stat = np.sqrt(pred_stat)
+    pred_syst = 0.0
+
+    #Calculate mean systematically shifted prediction
+    for k in range(n_systs):
+        for j in range(n_toys):
+            pred_yield_syst[k] += pred_sumw_systs[k][j]
+        pred_yield_syst[k] /= n_toys
+        pred_syst += abs(pred_yield_syst[k] - pred_yield)
+    kin_uncert = 0.0
+    if kin_sumw2 > 0:
+        kin_uncert = np.sqrt( kin_sumw*kin_sumw / kin_sumw2 )
+    return( kin_sumw, kin_uncert, pred_yield, pred_stat, pred_syst )
+
+@numba.jit(nopython=True)
 def apply_get_scale_factor(kin_MJ,dressed_MJ,weights,norm_low,norm_high):
     n = len(kin_MJ)
     n_toys = dressed_MJ.shape[1]

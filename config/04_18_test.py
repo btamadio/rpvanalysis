@@ -5,7 +5,7 @@
 "web_path": "/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/",
 "is_mc": true,
 "mc_label": "Pythia",
-"n_toys": 100,
+"n_toys": 50,
 "inject_sig": false,
 "sig_files": [],
 "sig_mult": 0.0,
