@@ -1,0 +1,56 @@
+#!/usr/bin/env python
+from rpvanalysis import rpvanalysis
+import json
+import sys
+
+if len(sys.argv) < 2:
+    print('Must specify configuration file.')
+    sys.exit(1)
+print(sys.argv[1])
+
+with open(sys.argv[1]) as f:
+    config = json.load(f)
+
+a = rpvanalysis.analyzer()
+
+a.date=config['date']
+a.job_name=config['job_name']
+a.web_path = config['web_path']
+if config['is_mc']:
+    a.mc_label = config['mc_label']
+
+a.make_plot_dir()
+a.read_bkg_from_csv(config['bkg_file'],is_mc=config['is_mc'])
+
+if config['inject_sig']:
+    a.read_sig_from_root(config['sig_file'])
+    a.inject_sig(config['sig_dsid'],config['sig_mult'])
+
+if 'bmatch_template' in config:
+    if config['bmatch_template'] == False:
+        a.use_lead_sublead_templates()
+
+a.compute_temp_bins()
+a.create_templates()
+a.verify_templates()
+a.compute_dressed_masses(10)
+
+response_list = ['UDR1l1e1','UDR1l1e2','UDR1l1e3','UDR1l1e4','UDR1l2e1','UDR1l2e2','UDR1l2e3','UDR1l2e4']
+
+for region_str in response_list:
+    a.plot_response(region_str)
+
+a.drop_2jet_events()
+a.compute_dressed_masses(config['n_toys'])
+
+response_list = ['UDR2l1e1','UDR2l1e2','UDR2l1e3','UDR2l1e4','UDR2l2e1','UDR2l2e2','UDR2l2e3','UDR2l2e4']
+
+for region_str in response_list:
+    a.plot_response(region_str)
+
+a.compute_uncertainties()
+a.compute_shifted_masses()
+a.compute_dressed_MJ()
+
+for region_str in config['MJ_plots']:
+    a.plot_MJ(region_str)
