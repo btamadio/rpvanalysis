@@ -14,6 +14,10 @@ def get_random_string(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
 def get_region_label(region_str):
+    if region_str.startswith('UDR1'):
+        region_str = '2jLJG400'+region_str[4:]
+    elif region_str.startswith('UDR2'):
+        region_str = '4js1VRLJL400'+region_str[4:]
     lines = []
     if '2j' in region_str:
         lines.append('N_{jet} = 2')
@@ -35,22 +39,28 @@ def get_region_label(region_str):
         lines.append('b-veto')
     elif 'b1' in region_str:
         lines.append('b-tag')
+    if 'LJL400' in region_str:
+        lines.append('p_{T}^{lead} < 0.4 TeV')
+    elif 'LJG400' in region_str:
+        lines.append('p_{T}^{lead} > 0.4 TeV')
     if 'bM' in region_str:
         lines.append('b-matched')
     elif 'bU' in region_str:
         lines.append('non-b-matched')
-    label = ''
-    if len(lines) == 1:
-        label = lines[0]
-    elif len(lines) == 2:
-        label = '#splitline{'+lines[0]+'}{'+lines[1]+'}'
-    elif len(lines) == 3:
-        label = '#splitline{#splitline{'+lines[0]+'}{'+lines[1]+'}}{'+lines[2]+'}'
-    elif len(lines) == 4:
-        label = '#splitline{#splitline{'+lines[0]+'}{'+lines[1]+'}}{#splitline{'+lines[2]+'}{'+lines[3]+'}}'
-    elif len(lines) == 5:
-        label = '#splitline{#splitline{#splitline{'+lines[0]+'}{'+lines[1]+'}}{#splitline{'+lines[2]+'}{'+lines[3]+'}}}{'+lines[4]+'}'
+    if 'l1' in region_str:
+        lines.append('leading jet')
+    elif 'l2' in region_str:
+        lines.append('sub-leading jets')
+    label = make_splitline(lines)
     return label
+
+def make_splitline(lines):
+    if len(lines) == 0:
+        return ''
+    elif len(lines) == 1:
+        return lines[0]
+    else:
+        return '#splitline{'+make_splitline(lines[:-1])+'}{'+lines[-1]+'}'
 
 def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded):
     kin_sumw,kin_sumw2,dress_nom_matrix,dress_syst_matrix = MJ_hists
@@ -226,9 +236,15 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
     print('Saving plot to %s'%full_path)
     canvas.Print(full_path)
     os.system('chmod a+r %s/%s/*' % (plot_path,region_str))
-    return return_list    
-def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5',mc_label='',eta_bin=-1):
+    return return_list 
+
+def plot_response(response,plot_path,canvas,region_str,pt_bins,eta_bins,lumi_label='36.5',mc_label=''):
     dressed_mean,kin_mean,err = response
+
+    dressed_mean = np.nan_to_num(dressed_mean)
+    kin_mean = np.nan_to_num(kin_mean)
+    err = np.nan_to_num(err)
+
     rand_str = get_random_string()
     canvas.cd()      
     p1 = ROOT.TPad('p1_'+rand_str,'p1_'+rand_str,0,0.3,1,1.0)
@@ -239,7 +255,8 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5'
     n_bins = len(pt_bins)-1
     kin_hist = ROOT.TH1F('kin_hist','kin_hist',n_bins,array.array('d',pt_bins))
     dressed_hist = ROOT.TH1F('dressed_hist','dressed_hist',n_bins,array.array('d',pt_bins))
-
+    kin_hist.SetDirectory(0)
+    dressed_hist.SetDirectory(0)
     for i in range(n_bins):
         bin = i+1
         kin_hist.SetBinContent(bin,kin_mean[i])
@@ -260,7 +277,7 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5'
 
     dressed_hist.Draw()
     kin_hist.Draw('same ep')
-
+#    return [dressed_hist,kin_hist]
     dressed_hist.GetYaxis().SetTitle('<m_{jet}> [TeV]')
     dressed_hist.GetYaxis().SetTitleSize(20)
     dressed_hist.GetYaxis().SetTitleFont(43)
@@ -276,15 +293,16 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5'
     else:
         lat.DrawLatexNDC(0.25,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
     lat.DrawLatexNDC(0.24,0.42,get_region_label(region_str))
-    if eta_bin == 0:
-        lat.DrawLatexNDC(0.7,0.18,'|#eta| < 0.5')
-    elif eta_bin == 1:
-        lat.DrawLatexNDC(0.7,0.18,'0.5 < |#eta| < 1.0')
-    elif eta_bin == 2:
-        lat.DrawLatexNDC(0.7,0.18,'1.0 < |#eta| < 1.5')
-    elif eta_bin == 3:
-        lat.DrawLatexNDC(0.7,0.18,'1.5 < |#eta| < 2.0')
-    #legend
+    
+    if 'e1' in region_str:
+        lat.DrawLatexNDC(0.7,0.18,'|#eta| < %.1f'%eta_bins[1])
+    elif 'e2' in region_str:
+        lat.DrawLatexNDC(0.7,0.18,'%.1f < |#eta| < %.1f' % (eta_bins[1],eta_bins[2]))
+    elif 'e3' in region_str:
+        lat.DrawLatexNDC(0.7,0.18,'%.1f < |#eta| < %.1f' % (eta_bins[2],eta_bins[3]))
+    elif 'e4' in region_str:
+        lat.DrawLatexNDC(0.7,0.18,'%.1f < |#eta| < %.1f' % (eta_bins[3],eta_bins[4]))
+
     leg = ROOT.TLegend(0.65,0.7,0.85,0.9)
     leg.AddEntry(kin_hist,'Kinematic','LP')
     leg.AddEntry(dressed_hist,'Prediction #pm 1#sigma','LF')
@@ -304,14 +322,14 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5'
     p2.Draw()
     p2.cd()
 
-    ratio_hist = kin_hist.Clone()
+    ratio_hist = kin_hist.Clone('ratio_hist')
 
     for bin in range(1,ratio_hist.GetNbinsX()+1):
         if dressed_hist.GetBinContent(bin) > 0:
             ratio_hist.SetBinError(bin,ratio_hist.GetBinError(bin) / dressed_hist.GetBinContent(bin))
             ratio_hist.SetBinContent(bin,ratio_hist.GetBinContent(bin) / dressed_hist.GetBinContent(bin))
         else:
-            ratio_hist.SetBinError(bin,1)
+            ratio_hist.SetBinError(bin,0)
             ratio_hist.SetBinContent(bin,0)
     ratio_hist.Draw('e0')
 
@@ -333,12 +351,15 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,lumi_label='36.5'
     ratio_hist.GetXaxis().SetTitle('jet p_{T} [TeV]')
     canvas.cd()
     canvas.Update()
+
+    return_list = [dressed_hist,kin_hist,ratio_hist,lat,leg]
+
     file_name = 'plot_mass_response.png'
     full_path = plot_path+'/'+region_str+'/'+file_name
     print('Saving plot to %s'%full_path)
     canvas.Print(full_path)
     os.system('chmod a+r %s/%s/*' % (plot_path,region_str))
-    return (dressed_hist,kin_hist,ratio_hist,lat,leg)
+    return [dressed_hist,kin_hist,ratio_hist,lat,leg]
 
 def plot_hist(h):
     plt.figure()

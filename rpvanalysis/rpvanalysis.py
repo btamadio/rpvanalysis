@@ -14,6 +14,7 @@ class analyzer:
         self.web_path = ''
         self.date = ''
         self.job_name = ''
+        self.canvas = None
         self.mc_label = ''
         self.lumi_label = '36.5'
         self.mc_lumi = 36.45
@@ -40,7 +41,7 @@ class analyzer:
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
-        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])
+        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=100000)
         if is_mc:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
@@ -112,6 +113,18 @@ class analyzer:
             data.append(row)
         return pd.DataFrame(data)
 
+    def use_lead_sublead_templates(self):
+        self.df['jet_bmatched_1'] = 1
+        self.df['jet_bmatched_2'] = 0
+        self.df['jet_bmatched_3'] = 0
+        self.df['jet_bmatched_4'] = 0
+
+    def drop_2jet_events(self):
+        index_to_drop = self.df[self.df['njet']==2].index
+        self.df = self.df.drop(index_to_drop)
+        for i in range(len(self.dressed_mass_nom)):
+            self.dressed_mass_nom[i] = self.dressed_mass_nom[i].drop(index_to_drop)
+
     def compute_temp_bins(self):
         #Get template bin indices for all jets and add to dataframe
         print('Determining template bins for all jets')
@@ -148,7 +161,6 @@ class analyzer:
         kin_mean = response[1]
         diff = (kin_mean - dressed_mean)/dressed_mean
         result=np.sqrt(np.mean(np.square(diff)))
-        print(result)
         return result
             
     def compute_uncertainties(self):
@@ -157,8 +169,7 @@ class analyzer:
         for bmatch in ['bU','bM']:
             for eta_bin in range(0,4):
                 region_str = '4js1VRb9'+bmatch
-                print(region_str)
-                self.jet_uncert.append( self.get_uncert( self.get_response( region_str,eta_bin )))
+                self.jet_uncert.append( self.get_uncert( self.get_response( region_str )))
 
     def compute_dressed_masses(self,n_toys):
         self.n_toys=n_toys
@@ -185,16 +196,13 @@ class analyzer:
             col_jet_pt = self.df['jet_pt_'+str(jet_i)].values
             col_jet_temp_bin = self.df['jet_temp_bin_'+str(jet_i)].values
             result = self.dressed_mass_nom[jet_i-1].as_matrix()
+            print(len(col_jet_temp_bin),result.shape)
             result_shift = jitfunctions.apply_shift_mass(result,col_jet_temp_bin,self.jet_uncert)
             self.dressed_mass_shift.append(pd.DataFrame(result_shift,index=self.df.index,columns=column_list))
 
-    def get_response(self,region_str,eta_bin=-1):
-        eta_min = 0
-        eta_max = 2
-        if eta_bin >= 0:
-            eta_min = self.eta_bins[eta_bin]
-            eta_max = self.eta_bins[eta_bin+1]
-        indices = helpers.get_region_index(self.df,region_str,eta_min,eta_max)
+    def get_response(self,region_str):
+        print ('Getting response for region',region_str)
+        indices = helpers.get_region_index(self.df,region_str,self.eta_bins)
         if len(indices) == 0:
             return
         jet_pt = self.df.ix[indices[0],'jet_pt_1'].values
@@ -203,23 +211,45 @@ class analyzer:
         jet_weight = self.df.ix[indices[0],'weight'].values
         jet_dressed_m = self.dressed_mass_nom[0].ix[indices[0]].as_matrix()
 
-        for i in range(1,len(indices)):
-            jet_i = i+1
-            jet_pt = np.append( jet_pt,self.df.ix[indices[i],'jet_pt_'+str(jet_i)].values )
-            jet_eta = np.append( jet_eta,self.df.ix[indices[i],'jet_eta_'+str(jet_i)].values )
-            jet_m = np.append( jet_m,self.df.ix[indices[i],'jet_m_'+str(jet_i)].values )
-            jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
-            jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_nom[i].ix[indices[i]].as_matrix(),axis=0)
-        return jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
+        #all jets
+        if not any( substr in region_str for substr in ['l1','l2'] ):
+            for i in range(1,len(indices)):
+                jet_i = i+1
+                jet_pt = np.append( jet_pt,self.df.ix[indices[i],'jet_pt_'+str(jet_i)].values )
+                jet_eta = np.append( jet_eta,self.df.ix[indices[i],'jet_eta_'+str(jet_i)].values )
+                jet_m = np.append( jet_m,self.df.ix[indices[i],'jet_m_'+str(jet_i)].values )
+                jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
+                jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_nom[i].ix[indices[i]].as_matrix(),axis=0)
+            return jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
+        else:
+            #just the leading jet
+            if 'l1' in region_str:
+                return jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
+            #just the subleading jets
+            else:
+                jet_pt = self.df.ix[indices[1],'jet_pt_2'].values
+                jet_eta = self.df.ix[indices[1],'jet_eta_2'].values
+                jet_m = self.df.ix[indices[1],'jet_m_2'].values
+                jet_weight = self.df.ix[indices[1],'weight'].values
+                jet_dressed_m = self.dressed_mass_nom[1].ix[indices[1]].as_matrix()                
+                for i in range(2,len(indices)):
+                    jet_i = i+1
+                    jet_pt = np.append( jet_pt,self.df.ix[indices[i],'jet_pt_'+str(jet_i)].values )
+                    jet_eta = np.append( jet_eta,self.df.ix[indices[i],'jet_eta_'+str(jet_i)].values )
+                    jet_m = np.append( jet_m,self.df.ix[indices[i],'jet_m_'+str(jet_i)].values )
+                    jet_weight = np.append( jet_weight,self.df.ix[indices[i],'weight'].values )
+                    jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_nom[i].ix[indices[i]].as_matrix(),axis=0)
+            return jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
 
     def plot_MJ(self,region_str,blinded=False):
         rand_str = plotters.get_random_string()
-        can_name = 'c_'+rand_str
-        self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
+        can_name = 'can'
+        if self.canvas is None:
+            self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
         full_path = self.plot_path + region_str
         os.system('mkdir -p %s'%full_path)#%s' % (self.plot_path,region_str))
         os.system('chmod a+rx %s' % (full_path))
-        index = helpers.get_region_index(self.df,region_str)[0]
+        index = helpers.get_region_index(self.df,region_str,self.eta_bins)[0]
         kin_MJ = self.df.ix[index].MJ.values
         dressed_MJ_nom = self.dressed_MJ_nom.ix[index].as_matrix()
         dressed_MJ_systs = np.array([ self.dressed_MJ_syst[i].ix[index].as_matrix() for i in range(self.n_systs) ])
@@ -229,16 +259,19 @@ class analyzer:
         sr_yields = jitfunctions.apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_cut)
         return plotters.plot_MJ(MJ_hists,scale_factor,sr_yields,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded)
         
-    def plot_response(self,region_str,eta_bin=-1):
+    def plot_response(self,region_str):
         rand_str = plotters.get_random_string()
-        can_name = 'c_'+rand_str
-        self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
+        can_name = 'can'
+        if self.canvas is None:
+            self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
         full_path = self.plot_path + region_str
         print('Creating directory %s'%full_path)
         os.system('mkdir -p %s'%full_path)#%s' % (self.plot_path,region_str))
         os.system('chmod a+rx %s' % (full_path))
-        response = self.get_response(region_str,eta_bin)
-        plotters.plot_response(response,self.plot_path,self.canvas,region_str,self.pt_bins,self.lumi_label,self.mc_label,eta_bin)
+        response = self.get_response(region_str)
+        print('plotting response for region',region_str)
+        return plotters.plot_response(response,self.plot_path,self.canvas,region_str,self.pt_bins,self.eta_bins,self.lumi_label,self.mc_label)
+
     def verify_templates(self):
         print('Verifying templates')
         for key in sorted(self.templates.keys()):
@@ -263,7 +296,6 @@ class analyzer:
             self.dressed_MJ_syst.append(pd.DataFrame(result[i],index=self.df.index,columns=column_list))
 
     def get_scale_factor(self,index):
-#        index = helpers.get_region_index(self.df,region_str)[0]
         kin_MJ = self.df.ix[index].MJ.values
         dressed_MJ = self.dressed_MJ_nom.ix[index].as_matrix()        
         weights = self.df.ix[index].weight.values

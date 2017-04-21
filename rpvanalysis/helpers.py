@@ -38,8 +38,13 @@ class template:
         self.n_eff = self.sumw*self.sumw/self.sumw2
         self.n_eff[ self.n_eff == np.nan ] = 0
 
-def get_region_index(df,region_string,eta_min=0,eta_max=2):
+def get_region_index(df,region_string,eta_bins):
     #Given a region string, return a list corresponding to the index of jets for that region
+    if region_string.startswith('UDR1'):
+        region_string = '2jLJG400'+region_string[4:]
+    elif region_string.startswith('UDR2'):
+        region_string = '4js1VRLJL400'+region_string[4:]
+    print 'Getting index for region:',region_string
     mask = None
     njet=0
     if region_string.startswith('2j'):
@@ -73,30 +78,45 @@ def get_region_index(df,region_string,eta_min=0,eta_max=2):
     elif 'b1' in region_string:
         mask &= df['nbjet'] >= 1
 
-    #If we don't select on any jet-level observables, just return the list of indices as-is
-    if (not 'bU' in region_string) and (not 'bM' in region_string) and eta_min == 0 and eta_max == 2:
-#        print('no jet-level selection. indices are same for all %i jets'%njet)
+    if 'LJL400' in region_string:
+        mask &= df['jet_pt_1'] < 0.4
+    elif 'LJG400' in region_string:
+        mask &= df['jet_pt_1'] > 0.4
+    
+    #if not jet-level observables, we are done
+    if not any( substr in region_string for substr in ['e1','e2','e3','e4','bU','bM']):
         return [ df[mask].index for _ in range(njet) ]
 
-#    print('jet-level selection. indices will be different for each jet')
-    #If we ask for eta cuts or b-matching, need to get different indices for each jet
+    #b-match selection
     masks = [ mask for _ in range(njet)]
+
     if 'bU' in region_string:
         for i in range(njet):
             jet_i = i+1
             masks[i] &= df['jet_bmatched_'+str(jet_i)] == 0
-
     elif 'bM' in region_string:
         for i in range(njet):
             jet_i = i+1
             masks[i] &= df['jet_bmatched_'+str(jet_i)] == 1
+    if not any (substr in region_string for substr in ['e1','e2','e3','e4']):
+        return [ df[mask].index for mask in masks ]
 
+    #eta selection
+    eta_min = 0.0
+    eta_max = 2.0
+    if 'e1' in region_string:
+        eta_max = eta_bins[1]
+    if 'e2' in region_string:
+        eta_min = eta_bins[1]
+        eta_max = eta_bins[2]
+    if 'e3' in region_string:
+        eta_min = eta_bins[2]
+        eta_max = eta_bins[3]
+    if 'e4' in region_string:
+        eta_min = eta_bins[3]
+        eta_max = eta_bins[4]
+    print('calculated eta_min, eta_max')
     for i in range(njet):
         jet_i = i+1
-        masks[i] &= df['jet_eta_'+str(jet_i)].apply(np.abs) > eta_min
-    
-    for i in range(njet):
-        jet_i = i+1
-        masks[i] &= df['jet_eta_'+str(jet_i)].apply(np.abs) < eta_max
-
+        masks[i] &= df['jet_eta_'+str(jet_i)].apply(np.abs).between(eta_min,eta_max)
     return [ df[mask].index for mask in masks ]

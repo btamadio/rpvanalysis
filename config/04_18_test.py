@@ -1,15 +1,15 @@
 {
 "date": "04_18",
-"job_name": "pythia",
-"bkg_file": "data/largeR_trig/pythia_JZW.csv",
+"job_name": "test",
+"bkg_file": "data/HT_trig/data_HT.csv",
 "web_path": "/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/",
-"is_mc": true,
-"mc_label": "Pythia",
-"n_toys": 50,
+"is_mc": false,
+"mc_label": "",
+"n_toys": 1,
 "inject_sig": false,
 "sig_files": [],
 "sig_mult": 0.0,
 "sig_dsid": 0,
-"response_plots": [],
-"MJ_plots":["5jSRb1"]
+"response_plots": ["4js1VRLJL4001le1"],
+"MJ_plots":[]
 }
