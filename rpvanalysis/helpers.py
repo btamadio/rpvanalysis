@@ -43,7 +43,7 @@ def get_region_index(df,region_string,eta_bins):
     if region_string.startswith('UDR1'):
         region_string = '2jLJG400'+region_string[4:]
     elif region_string.startswith('UDR2'):
-        region_string = '4js1VRLJL400'+region_string[4:]
+        region_string = '4js1LJL400'+region_string[4:]
     print 'Getting index for region:',region_string
     mask = None
     njet=0
@@ -115,7 +115,6 @@ def get_region_index(df,region_string,eta_bins):
     if 'e4' in region_string:
         eta_min = eta_bins[3]
         eta_max = eta_bins[4]
-    print('calculated eta_min, eta_max')
     for i in range(njet):
         jet_i = i+1
         masks[i] &= df['jet_eta_'+str(jet_i)].apply(np.abs).between(eta_min,eta_max)

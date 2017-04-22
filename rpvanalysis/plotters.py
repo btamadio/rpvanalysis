@@ -17,7 +17,7 @@ def get_region_label(region_str):
     if region_str.startswith('UDR1'):
         region_str = '2jLJG400'+region_str[4:]
     elif region_str.startswith('UDR2'):
-        region_str = '4js1VRLJL400'+region_str[4:]
+        region_str = '4js1LJL400'+region_str[4:]
     lines = []
     if '2j' in region_str:
         lines.append('N_{jet} = 2')
@@ -62,7 +62,7 @@ def make_splitline(lines):
     else:
         return '#splitline{'+make_splitline(lines[:-1])+'}{'+lines[-1]+'}'
 
-def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded):
+def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
     kin_sumw,kin_sumw2,dress_nom_matrix,dress_syst_matrix = MJ_hists
     kin_yield, kin_uncert, pred_yield, pred_stat, pred_syst = sr_yields
     n_systs = dress_syst_matrix.shape[0]
@@ -91,8 +91,12 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
 
     for i in range(n_bins):
         bin = i+1
-        kin_hist.SetBinContent(bin,kin_sumw[i])
-        kin_hist.SetBinError( bin, kin_stat_err[i] )
+        if blinded and kin_hist.GetBinLowEdge(bin) >= MJ_cut:
+            kin_hist.SetBinContent(bin,0)
+            kin_hist.SetBinError( bin,0)
+        else:
+            kin_hist.SetBinContent(bin,kin_sumw[i])
+            kin_hist.SetBinError( bin, kin_stat_err[i] )
         dressed_hist.SetBinContent(bin, dress_nom_sumw[i])
         err_hist.SetBinContent(bin,dress_nom_sumw[i])
         err_syst = 0.0
@@ -126,6 +130,9 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
     dressed_hist_up.SetLineWidth(2)
     dressed_hist_down.SetLineColor(ROOT.kGray+1)
     dressed_hist_down.SetLineWidth(2)            
+
+    err_hist.SetMinimum(0.1)
+    err_hist.SetMaximum(15*err_hist.GetMaximum())
 
     err_hist.Draw('e2')
     dressed_hist.Draw('same')

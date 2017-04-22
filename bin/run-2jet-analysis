@@ -53,4 +53,4 @@ a.compute_shifted_masses()
 a.compute_dressed_MJ()
 
 for region_str in config['MJ_plots']:
-    a.plot_MJ(region_str)
+    a.plot_MJ(region_str,blinded=config['blinded'])

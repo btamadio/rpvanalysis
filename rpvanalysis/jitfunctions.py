@@ -82,7 +82,7 @@ def apply_shift_mass(mass_matrix,col_jet_temp_bin,jet_uncert):
     n = len(col_jet_temp_bin)
     n_toys = mass_matrix.shape[1]
     assert mass_matrix.shape[0] == n
-    result = np.copy(mass_matrix)#np.zeros( mass_matrix.shape )
+    result = np.copy(mass_matrix)
     for i in range(n):
         uncert_bin = get_uncert_bin( col_jet_temp_bin[i] )
         for j in range(n_toys):
