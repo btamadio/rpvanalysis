@@ -28,6 +28,7 @@ if config['inject_sig']:
 
 if 'bmatch_template' in config:
     if config['bmatch_template'] == False:
+        print('Using lead/sublead template binning')
         a.use_lead_sublead_templates()
 
 a.compute_temp_bins()

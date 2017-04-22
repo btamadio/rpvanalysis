@@ -109,7 +109,7 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
         dressed_hist_down.SetBinContent(bin,dressed_hist.GetBinContent(bin) - err_syst)
         err_hist.SetBinError(bin,tot_err)
     print('plotting...')
-    hist_list = [err_hist,dressed_hist,kin_hist,dressed_hist_up,dressed_hist_down]
+    hist_list = [err_hist,dressed_hist,dressed_hist_up,dressed_hist_down]
     [hist.Scale(scale_factor) for hist in hist_list]
 
     err_hist.SetMarkerSize(0.001)

@@ -33,15 +33,13 @@ if 'bmatch_template' in config:
 a.compute_temp_bins()
 a.create_templates()
 a.verify_templates()
-a.compute_dressed_masses(10)
- 
+a.compute_dressed_masses(config['n_toys']) 
+
 if 'response_plots' in config:
     [a.plot_response(region_str) for region_str in config['response_plots']]
 if 'mass_plots' in config:
     [a.plot_mass(region_str) for region_str in config['mass_plots']]
 if 'MJ_plots' in config:
-    a.drop_2jet_events()
-    a.compute_dressed_masses(config['n_toys'])
     a.compute_uncertainties()
     a.compute_shifted_masses()
     a.compute_dressed_MJ()
