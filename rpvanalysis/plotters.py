@@ -133,7 +133,7 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
     dressed_hist_down.SetLineWidth(2)            
 
     err_hist.SetMinimum(0.5)
-    err_hist.SetMaximum( 5*np.ceil(err_hist.GetMaximum()/1000 )*1000)
+    err_hist.SetMaximum( np.ceil(err_hist.GetMaximum()/1000 )*1000)
 
     err_hist.Draw('e2')
     dressed_hist.Draw('same')

@@ -196,7 +196,8 @@ class analyzer:
             self.templates_array[key]=self.templates[key].probs
             self.templates_neff_array[key]=self.templates[key].n_eff
 
-    def get_uncert(self,response):
+    def get_uncert(self,region_str):
+        response = self.get_response(region_str)
         #Uncertainty of a response = RMS
         #for new UDRs: don't count bins that have zero entries
         dressed_mean = response[0]
@@ -204,13 +205,15 @@ class analyzer:
         result = 0.0
         count = 0
         for i in range(dressed_mean.shape[0]):
+            if 'LJG400' in region_str and self.pt_bins[i] < 0.4:
+                continue
+            if 'LJL400' in region_str and self.pt_bins[i] > 0.4:
+                continue
             if dressed_mean[i] > 1e-6 and kin_mean[i] > 1e-6:
                 result += np.square ( (kin_mean[i] - dressed_mean[i])/dressed_mean[i] )
                 count+=1
         result /= count
         result = np.sqrt(result)
-        #diff = (kin_mean - dressed_mean)/dressed_mean
-        #result=np.sqrt(np.mean(np.square(diff)))
         return result
             
     def compute_uncertainties(self):
@@ -223,7 +226,7 @@ class analyzer:
                          '2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4']
         self.jet_uncert = []
         for region_str in self.UDRs:
-            self.jet_uncert.append(self.get_uncert(self.get_response(region_str)))
+            self.jet_uncert.append(self.get_uncert(region_str))
             print (region_str,'uncertainty = ',self.jet_uncert[-1])
 
     def compute_dressed_masses(self,n_toys):

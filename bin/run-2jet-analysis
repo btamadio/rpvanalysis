@@ -63,3 +63,6 @@ if 'MJ_plots' in config:
 
     for region_str in config['MJ_plots']:
         a.plot_MJ(region_str,blinded=config['blinded'])
+if 'response_plots' in config:
+    for region_str in config['response_plots']:
+        a.plot_response(region_str)
