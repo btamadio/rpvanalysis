@@ -48,7 +48,7 @@ def apply_get_uncert_bin(col_pt,col_eta,col_bmatch,eta_bins,template_type):
                     bin=j
             if col_bmatch[i]==1:
                 bin+=4
-        if template_type==1 or template_type==2:
+        if template_type==1 or template_type==2 or template_type==3:
             for j in range(0,len(eta_bins)-1):
                 if abs(col_eta[i]) >= eta_bins[j] and abs(col_eta[i]) < eta_bins[j+1]:
                     bin=j

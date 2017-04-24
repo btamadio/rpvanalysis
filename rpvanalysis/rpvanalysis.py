@@ -166,6 +166,15 @@ class analyzer:
                                                          self.pt_bins,
                                                          self.eta_bins)
                 self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))            
+        elif self.template_type == 3:
+            #leading 2 jets vs. 3rd jet
+            for i in range(1,5):
+                result = jitfunctions.apply_get_temp_bin(self.df['jet_pt_'+str(i)].values,
+                                                         self.df['jet_eta_'+str(i)].values,
+                                                         np.repeat(int(i<=2),len(self.df)),
+                                                         self.pt_bins,
+                                                         self.eta_bins)
+                self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))            
 
     def create_templates(self):
         print('Creating templates from control region')
@@ -184,7 +193,9 @@ class analyzer:
             
         #loop over all template bins for which CR jets exist and create the templates
         key_list = sorted( np.unique( self.df[['jet_temp_bin_1','jet_temp_bin_2','jet_temp_bin_3']].values ) )
-        
+
+        key_list = [key for key in key_list if key!=-1]
+
         self.templates_array = np.zeros((len(key_list),50))
         self.templates_neff_array = np.zeros((len(key_list),50))
 
@@ -196,19 +207,24 @@ class analyzer:
             self.templates_array[key]=self.templates[key].probs
             self.templates_neff_array[key]=self.templates[key].n_eff
 
-    def get_uncert(self,region_str):
+    def get_uncert(self,region_str,bin_i):
         response = self.get_response(region_str)
         #Uncertainty of a response = RMS
-        #for new UDRs: don't count bins that have zero entries
         dressed_mean = response[0]
         kin_mean = response[1]
         result = 0.0
         count = 0
         for i in range(dressed_mean.shape[0]):
-            if 'LJG400' in region_str and self.pt_bins[i] < 0.4:
-                continue
-            if 'LJL400' in region_str and self.pt_bins[i] > 0.4:
-                continue
+            if self.template_type == 3:
+                if bin_i < 4 and self.pt_bins[i] < 0.4:
+                    continue
+                if bin_i >= 4 and self.pt_bins[i] > 0.4:
+                    continue
+            else:
+                if 'LJG400' in region_str and self.pt_bins[i] < 0.4:
+                    continue
+                if 'LJL400' in region_str and self.pt_bins[i] > 0.4:
+                    continue
             if dressed_mean[i] > 1e-6 and kin_mean[i] > 1e-6:
                 result += np.square ( (kin_mean[i] - dressed_mean[i])/dressed_mean[i] )
                 count+=1
@@ -224,9 +240,12 @@ class analyzer:
         elif self.template_type == 1 or self.template_type==2:
             self.UDRs = ['4js1LJL400e1','4js1LJL400e2','4js1LJL400e3','4js1LJL400e4',
                          '2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4']
+        elif self.template_type == 3:
+            self.UDRs = ['2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4',
+                         '2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4']
         self.jet_uncert = []
-        for region_str in self.UDRs:
-            self.jet_uncert.append(self.get_uncert(region_str))
+        for i,region_str in enumerate(self.UDRs):
+            self.jet_uncert.append(self.get_uncert(region_str,i))
             print (region_str,'uncertainty = ',self.jet_uncert[-1])
 
     def compute_dressed_masses(self,n_toys):
