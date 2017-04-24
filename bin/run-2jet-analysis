@@ -26,10 +26,8 @@ if config['inject_sig']:
     a.read_sig_from_root(config['sig_file'])
     a.inject_sig(config['sig_dsid'],config['sig_mult'])
 
-if 'bmatch_template' in config:
-    if config['bmatch_template'] == False:
-        print('Using lead/sublead template binning')
-        a.use_lead_sublead_templates()
+if 'template_type' in config:
+    a.template_type = config['template_type']
 
 a.compute_temp_bins()
 a.create_templates()

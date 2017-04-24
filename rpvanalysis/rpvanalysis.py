@@ -11,11 +11,13 @@ import ROOT
 class analyzer:
     def __init__(self):
         print('Setting up analysis')
+        self.template_type = 0
         self.n_systs=8
         self.web_path = ''
         self.date = ''
         self.job_name = ''
         self.canvas = None
+        self.dressed_mass_nom = None
         self.mc_label = ''
         self.lumi_label = '36.5'
         self.mc_lumi = 36.45
@@ -25,7 +27,7 @@ class analyzer:
         self.template_max = 0
         self.templates = {}
         self.norm_region = (0.2,0.4)
-        self.jet_uncert = np.zeros(8)
+        self.jet_uncert = np.zeros(self.n_systs)
         self.templates_array = np.zeros((120,50))
         self.templates_neff_array = np.zeros((120,50))
         self.pt_bins = np.array([0.2,0.221,0.244,0.270,0.293,0.329,0.364,0.402,0.445,0.492,0.544,0.6,0.644,0.733,0.811,0.896])
@@ -34,10 +36,10 @@ class analyzer:
 
     def make_plot_dir(self):
         #Create directory for saving plots
-        self.plot_path = self.web_path + '/'+self.date + '_' + self.job_name + '/'
+        self.plot_path = self.web_path.strip('/') + '/'+self.date + '_' + self.job_name + '/'
         print('Creating output directory: %s ' % self.plot_path )
-        os.system(' mkdir -p %s'%self.plot_path)
-        os.system(' chmod a+rx %s'%self.plot_path)
+        os.system('mkdir -p %s'%self.plot_path)
+        os.system('chmod a+rx %s'%self.plot_path)
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
@@ -113,35 +115,50 @@ class analyzer:
             data.append(row)
         return pd.DataFrame(data)
 
-    def use_lead_sublead_templates(self):
-        self.df['jet_bmatched_1'] = 1
-        self.df['jet_bmatched_2'] = 0
-        self.df['jet_bmatched_3'] = 0
-        self.df['jet_bmatched_4'] = 0
-
     def drop_2jet_events(self):
         print('Dropping 2-jet events')
         mask = self.df['njet']>2
         self.df = self.df[mask]
         self.df.index = np.arange(len(self.df))
         print(len(self.df))
-        temp_dm = np.zeros((4,len(self.df),self.n_toys))
-        for i in range(4):
-            temp_dm[i] = self.dressed_mass_nom[i][mask]
-            print(temp_dm[i].shape)
-        self.dressed_mass_nom = temp_dm
-        print(self.dressed_mass_nom.shape)
+        if self.dressed_mass_nom:
+            temp_dm = np.zeros((4,len(self.df),self.n_toys))
+            for i in range(4):
+                temp_dm[i] = self.dressed_mass_nom[i][mask]
+                print(temp_dm[i].shape)
+            self.dressed_mass_nom = temp_dm
+            print(self.dressed_mass_nom.shape)
 
     def compute_temp_bins(self):
         #Get template bin indices for all jets and add to dataframe
         print('Determining template bins for all jets')
-        for i in range(1,5):
-            result = jitfunctions.apply_get_temp_bin(self.df['jet_pt_'+str(i)].values,
-                                                     self.df['jet_eta_'+str(i)].values,
-                                                     self.df['jet_bmatched_'+str(i)].values,
-                                                     self.pt_bins,
-                                                     self.eta_bins)
-            self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))
+        if self.template_type == 0:
+            #b-match vs. non-b-match jets
+            for i in range(1,5):
+                result = jitfunctions.apply_get_temp_bin(self.df['jet_pt_'+str(i)].values,
+                                                         self.df['jet_eta_'+str(i)].values,
+                                                         self.df['jet_bmatched_'+str(i)].values,
+                                                         self.pt_bins,
+                                                         self.eta_bins)
+                self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))
+        elif self.template_type == 1:
+            #merge b-match and non-b-match jets
+            for i in range(1,5):
+                result = jitfunctions.apply_get_temp_bin(self.df['jet_pt_'+str(i)].values,
+                                                         self.df['jet_eta_'+str(i)].values,
+                                                         np.zeros( len(self.df) )
+                                                         self.pt_bins,
+                                                         self.eta_bins)
+                self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))            
+        elif self.template_type == 2:
+            #leading vs. non-leading jets
+            for i in range(1,5):
+                result = jitfunctions.apply_get_temp_bin(self.df['jet_pt_'+str(i)].values,
+                                                         self.df['jet_eta_'+str(i)].values,
+                                                         np.repeat(int(i==1),len(self.df))
+                                                         self.pt_bins,
+                                                         self.eta_bins)
+                self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))            
 
     def create_templates(self):
         print('Creating templates from control region')
@@ -175,7 +192,7 @@ class analyzer:
         self.jet_uncert = []
         for bmatch in ['bU','bM']:
             for eta_bin in range(0,4):
-                region_str = '4js1VRb9'+bmatch
+                region_str = '4js1VRb9'+bmatch+'e'+str(eta_bin+1)
                 self.jet_uncert.append( self.get_uncert( self.get_response( region_str )))
 
     def compute_dressed_masses(self,n_toys):
@@ -250,8 +267,9 @@ class analyzer:
         if self.canvas is None:
             self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
         full_path = self.plot_path + region_str
-        os.system('mkdir -p %s'%full_path)#%s' % (self.plot_path,region_str))
-        os.system('chmod a+rx %s' % (full_path))
+        print('Creating directory %s'%full_path)
+        os.system('mkdir -p %s'%full_path)
+        os.system('chmod a+rx %s' %full_path)
         index = helpers.get_region_index(self.df,region_str,self.eta_bins)[0]
         kin_MJ = self.df.ix[index].MJ.values
         dressed_MJ_systs = np.array([ self.dressed_MJ_syst[i][index] for i in range(self.n_systs) ])

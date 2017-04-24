@@ -12,10 +12,10 @@ def get_pt_bin(pt,pt_bins):
 
 @numba.jit(nopython=True)
 def get_MJ_bin(MJ,MJ_bins):
-    if MJ > MJ_bins[-2]:
+    if MJ >= MJ_bins[-2]:
         return(len(MJ_bins)-2)
     for i in range(len(MJ_bins)-1):
-        if MJ > MJ_bins[i] and MJ <= MJ_bins[i+1]:
+        if MJ >= MJ_bins[i] and MJ < MJ_bins[i+1]:
             return i
     return -1
 

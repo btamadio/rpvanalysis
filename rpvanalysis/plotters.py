@@ -64,11 +64,12 @@ def make_splitline(lines):
 
 def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
     kin_sumw,kin_sumw2,dress_nom_matrix,dress_syst_matrix = MJ_hists
+
     kin_yield, kin_uncert, pred_yield, pred_stat, pred_syst = sr_yields
     n_systs = dress_syst_matrix.shape[0]
     n_bins = len(MJ_bins)-1
 
-    kin_stat_err = np.nan_to_num(np.sqrt(kin_sumw*kin_sumw / kin_sumw2))
+    kin_stat_err = np.sqrt( kin_sumw2 )
     dress_nom_sumw = np.mean( dress_nom_matrix, axis=0)
     dress_stat_err = np.std( dress_nom_matrix, axis = 0)
     dress_syst_sumw = np.zeros( (n_systs,n_bins) )
@@ -131,8 +132,8 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
     dressed_hist_down.SetLineColor(ROOT.kGray+1)
     dressed_hist_down.SetLineWidth(2)            
 
-    err_hist.SetMinimum(0.1)
-    err_hist.SetMaximum(15*err_hist.GetMaximum())
+    err_hist.SetMinimum(0.5)
+    err_hist.SetMaximum( np.ceil(err_hist.GetMaximum()/1000 )*1000)
 
     err_hist.Draw('e2')
     dressed_hist.Draw('same')
@@ -153,7 +154,7 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
         lat.DrawLatexNDC(0.35,0.78,lumi_label+' fb^{-1} '+mc_label)
         lat.DrawLatexNDC(0.6,0.82,'#splitline{n_{pred} = %.1f #pm %.1f #pm %.1f}{n_{obs} = %.1f #pm %.1f}' % (pred_yield,pred_stat,pred_syst,kin_yield,kin_uncert))
     else:
-        lat.DrawLatexNDC(0.25,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
+        lat.DrawLatexNDC(0.3,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
         if blinded:
             lat.DrawLatexNDC(0.6,0.82,'n_{pred} = %.1f #pm %.1f #pm %.1f' % (pred_yield,pred_stat,pred_syst))
         else:
@@ -239,10 +240,10 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
     canvas.cd()
     canvas.Update()
     file_name = 'plot_MJ.png'
-    full_path = plot_path+'/'+region_str+'/'+file_name
-    print('Saving plot to %s'%full_path)
-    canvas.Print(full_path)
-    os.system('chmod a+r %s/%s/*' % (plot_path,region_str))
+    full_path = plot_path.strip('/')+'/'+region_str+'/'
+    print('Saving plot to %s'%full_path+file_name)
+    canvas.Print(full_path+file_name)
+    os.system('chmod a+r ' + full_path+file_name)
     return return_list 
 
 def plot_response(response,plot_path,canvas,region_str,pt_bins,eta_bins,lumi_label='36.5',mc_label=''):

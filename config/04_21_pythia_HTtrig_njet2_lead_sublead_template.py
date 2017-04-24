@@ -4,7 +4,7 @@
 "bkg_file": "data/HT_trig/pythia_HTtrig_njet2.csv",
 "web_path": "/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/",
 "is_mc": true,
-"mc_label": "",
+"mc_label": "Pythia",
 "n_toys": 100,
 "inject_sig": false,
 "sig_files": [],
