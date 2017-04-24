@@ -36,6 +36,28 @@ def get_temp_bin(pt,eta,bmatch,pt_bins,eta_bins):
     return 60*bmatch+4*pt_bin+eta_bin
 
 @numba.jit(nopython=True)
+def apply_get_uncert_bin(col_pt,col_eta,col_bmatch,eta_bins,template_type):
+    n=len(col_pt)
+    assert n==len(col_eta) == len(col_bmatch)
+    result = np.zeros(n,dtype=np.int32)
+    for i in range(n):
+        bin = -1
+        if template_type==0:
+            for j in range(0,len(eta_bins)-1):
+                if abs(col_eta[i]) >= eta_bins[j] and abs(col_eta[i]) < eta_bins[j+1]:
+                    bin=j
+            if col_bmatch[i]==1:
+                bin+=4
+        if template_type==1 or template_type==2:
+            for j in range(0,len(eta_bins)-1):
+                if abs(col_eta[i]) >= eta_bins[j] and abs(col_eta[i]) < eta_bins[j+1]:
+                    bin=j
+            if col_pt[i] > 0.4:
+                bin+=4
+        result[i] = bin
+    return result
+
+@numba.jit(nopython=True)
 def apply_get_temp_bin(col_pt,col_eta,col_bmatch,pt_bins,eta_bins):
     #Loop over series of pt, eta, and b-match and return list of template indices
     n=len(col_bmatch)
@@ -43,9 +65,7 @@ def apply_get_temp_bin(col_pt,col_eta,col_bmatch,pt_bins,eta_bins):
     assert len(col_pt)==len(col_eta)==n
     for i in range(n):
         result[i] = get_temp_bin(col_pt[i],abs(col_eta[i]),col_bmatch[i],pt_bins,eta_bins)
-
     return result
-
 
 @numba.jit(nopython=True)
 def sample_from_cdf(sample,probs,bin_centers,bin_edges):
@@ -78,15 +98,14 @@ def get_uncert_bin( temp_bin ):
     return eta_bin + 4*bmatch
 
 @numba.jit(nopython=True)
-def apply_shift_mass(mass_matrix,col_jet_temp_bin,jet_uncert):
-    n = len(col_jet_temp_bin)
+def apply_shift_mass(mass_matrix,col_jet_uncert_bin,jet_uncert):
+    n = len(col_jet_uncert_bin)
     n_toys = mass_matrix.shape[1]
     assert mass_matrix.shape[0] == n
     result = np.copy(mass_matrix)
     for i in range(n):
-        uncert_bin = get_uncert_bin( col_jet_temp_bin[i] )
         for j in range(n_toys):
-            result[i][j] *= (1 + jet_uncert[uncert_bin] )
+            result[i][j] *= (1 + jet_uncert[col_jet_uncert_bin[i]] )
     return result
 
 @numba.jit(nopython=True)
@@ -222,23 +241,21 @@ def apply_get_scale_factor(kin_MJ,dressed_MJ,weights,norm_low,norm_high):
     return n_toys*kin_sumw/dressed_sumw
 
 @numba.jit(nopython=True)
-def apply_get_shifted_MJ(dm_nom_list,dm_shift_list,temp_list):
+def apply_get_shifted_MJ(dm_nom_list,dm_shift_list,jet_uncert_bins,n_systs):
     #dm_nom_list = n_jet x n_events x n_toys
     #dm_shift_list = n_jet x n_events x n_toys
     #temp_list = n_jet x n_events
     #result = n_systs x n_events x n_toys
     n_jet=dm_nom_list.shape[0]
-    n_systs = 8
     n_events = dm_nom_list.shape[1]
     n_toys = dm_nom_list.shape[2]
     result = np.zeros( (n_systs,n_events,n_toys) )
     for syst in range(n_systs):
         for i in range(n_events):
             for j in range(4):
-                if temp_list[j][i] != -1:
-                    uncert_bin = get_uncert_bin(temp_list[j][i])
+                if jet_uncert_bins[j][i] != -1:
                     for toy in range(n_toys):
-                        if uncert_bin == syst:
+                        if jet_uncert_bins[j][i] == syst:
                             result[syst][i][toy] += dm_shift_list[j][i][toy]
                         else:
                             result[syst][i][toy] += dm_nom_list[j][i][toy]

@@ -26,9 +26,10 @@ if config['inject_sig']:
     a.read_sig_from_root(config['sig_file'])
     a.inject_sig(config['sig_dsid'],config['sig_mult'])
 
-if 'bmatch_template' in config:
-    if config['bmatch_template'] == False:
-        a.use_lead_sublead_templates()
+if not 'template_type' in config:
+    config['template_type'] = 0
+
+a.template_type = config['template_type']
 
 a.drop_2jet_events()
 a.compute_temp_bins()
@@ -41,9 +42,9 @@ if 'blinded' not in config:
 
 if 'response_plots' in config:
     [a.plot_response(region_str) for region_str in config['response_plots']]
-if 'mass_plots' in config:
-    [a.plot_mass(region_str) for region_str in config['mass_plots']]
+
 if 'MJ_plots' in config:
+    a.compute_uncert_bins()
     a.compute_uncertainties()
     a.compute_shifted_masses()
     a.compute_dressed_MJ()

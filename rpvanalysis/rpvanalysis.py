@@ -12,7 +12,6 @@ class analyzer:
     def __init__(self):
         print('Setting up analysis')
         self.template_type = 0
-        self.n_systs=8
         self.web_path = ''
         self.date = ''
         self.job_name = ''
@@ -27,23 +26,21 @@ class analyzer:
         self.template_max = 0
         self.templates = {}
         self.norm_region = (0.2,0.4)
-        self.jet_uncert = np.zeros(self.n_systs)
-        self.templates_array = np.zeros((120,50))
-        self.templates_neff_array = np.zeros((120,50))
         self.pt_bins = np.array([0.2,0.221,0.244,0.270,0.293,0.329,0.364,0.402,0.445,0.492,0.544,0.6,0.644,0.733,0.811,0.896])
         self.eta_bins = np.array([0.0,0.5,1.0,1.5,2.0])
         self.MJ_bins =np.array([0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.40,0.45,0.5,0.6,0.8,1.0,2.0])
 
     def make_plot_dir(self):
         #Create directory for saving plots
-        self.plot_path = self.web_path.strip('/') + '/'+self.date + '_' + self.job_name + '/'
+        self.plot_path = self.web_path.rstrip('/') + '/'+self.date + '_' + self.job_name + '/'
         print('Creating output directory: %s ' % self.plot_path )
-        os.system('mkdir -p %s'%self.plot_path)
+        if not os.path.exists(self.plot_path):
+            os.mkdir(self.plot_path)
         os.system('chmod a+rx %s'%self.plot_path)
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
-        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])
+        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=1000000)
         if is_mc:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
@@ -121,14 +118,23 @@ class analyzer:
         self.df = self.df[mask]
         self.df.index = np.arange(len(self.df))
         print(len(self.df))
-        if self.dressed_mass_nom:
+        if self.dressed_mass_nom is not None:
             temp_dm = np.zeros((4,len(self.df),self.n_toys))
             for i in range(4):
                 temp_dm[i] = self.dressed_mass_nom[i][mask]
-                print(temp_dm[i].shape)
             self.dressed_mass_nom = temp_dm
-            print(self.dressed_mass_nom.shape)
+            print(self.dressed_mass_nom.shape,' events remaining')
 
+    def compute_uncert_bins(self):
+        print('Determining uncertainty bins for all jets')
+        for i in range(1,5):
+            result = jitfunctions.apply_get_uncert_bin(self.df['jet_pt_'+str(i)].values,
+                                                       self.df['jet_eta_'+str(i)].values,
+                                                       self.df['jet_bmatched_'+str(i)].values,
+                                                       self.eta_bins,
+                                                       self.template_type)
+            self.df['jet_uncert_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_uncert_bin_'+str(i))
+            
     def compute_temp_bins(self):
         #Get template bin indices for all jets and add to dataframe
         print('Determining template bins for all jets')
@@ -146,54 +152,79 @@ class analyzer:
             for i in range(1,5):
                 result = jitfunctions.apply_get_temp_bin(self.df['jet_pt_'+str(i)].values,
                                                          self.df['jet_eta_'+str(i)].values,
-                                                         np.zeros( len(self.df) )
+                                                         np.zeros( len(self.df),dtype=np.int32 ),
                                                          self.pt_bins,
                                                          self.eta_bins)
                 self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))            
+
         elif self.template_type == 2:
             #leading vs. non-leading jets
             for i in range(1,5):
                 result = jitfunctions.apply_get_temp_bin(self.df['jet_pt_'+str(i)].values,
                                                          self.df['jet_eta_'+str(i)].values,
-                                                         np.repeat(int(i==1),len(self.df))
+                                                         np.repeat(int(i==1),len(self.df)),
                                                          self.pt_bins,
                                                          self.eta_bins)
                 self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))            
 
     def create_templates(self):
         print('Creating templates from control region')
+        #label jets that belong to control region
         for i in range(1,5):
             mask = self.df['njet']==3
             mask &= (self.df['jet_bmatched_'+str(i)]==0) | (self.df['jet_bmatched_'+str(i)]==1)&(self.df['dEta']>1.4)
             self.df['jet_is_CR_'+str(i)] = mask.astype(int)
-        df_temps = [None,None,None]
 
+        print(' making reindexed data frames for CR jets')
+        #create 3 new dataframes containing only control region jets, and indexed on their template bins
+        df_temps = [None,None,None]
         for i in range(1,4):
             jet_var_list = ['jet_temp_bin_'+str(i),'jet_m_'+str(i),'jet_pt_'+str(i),'jet_is_CR_'+str(i),'weight']
             df_temps[i-1] = self.df[self.df['jet_is_CR_'+str(i)]==1][jet_var_list].set_index(keys=['jet_temp_bin_'+str(i)])
-        for bmatch in [0,1]:
-            for pt_bin in range(len(self.pt_bins)-1):
-                for eta_bin in range(len(self.eta_bins)-1):
-                    key = 60*bmatch+4*pt_bin+eta_bin
-                    self.templates[key] = helpers.template(self.n_template_bins,df_temps,key,self.template_min,self.template_max)
-                    self.templates_array[key]=self.templates[key].probs
-                    self.templates_neff_array[key]=self.templates[key].n_eff
+            
+        #loop over all template bins for which CR jets exist and create the templates
+        key_list = sorted( np.unique( self.df[['jet_temp_bin_1','jet_temp_bin_2','jet_temp_bin_3']].values ) )
+        
+        self.templates_array = np.zeros((len(key_list),50))
+        self.templates_neff_array = np.zeros((len(key_list),50))
+
+        for key in key_list:
+            if key == -1:
+                continue
+            key = np.asscalar(key)
+            self.templates[key] = helpers.template(self.n_template_bins,df_temps,key,self.template_min,self.template_max)
+            self.templates_array[key]=self.templates[key].probs
+            self.templates_neff_array[key]=self.templates[key].n_eff
 
     def get_uncert(self,response):
         #Uncertainty of a response = RMS
+        #for new UDRs: don't count bins that have zero entries
         dressed_mean = response[0]
         kin_mean = response[1]
-        diff = (kin_mean - dressed_mean)/dressed_mean
-        result=np.sqrt(np.mean(np.square(diff)))
+        result = 0.0
+        count = 0
+        for i in range(dressed_mean.shape[0]):
+            if dressed_mean[i] > 1e-6 and kin_mean[i] > 1e-6:
+                result += np.square ( (kin_mean[i] - dressed_mean[i])/dressed_mean[i] )
+                count+=1
+        result /= count
+        result = np.sqrt(result)
+        #diff = (kin_mean - dressed_mean)/dressed_mean
+        #result=np.sqrt(np.mean(np.square(diff)))
         return result
             
     def compute_uncertainties(self):
         #Loop over UDRs and calculate uncertainties
+        if self.template_type == 0:
+            self.UDRs = ['4js1VRb9bUe1','4js1VRb9bUe2','4js1VRb9bUe3','4js1VRb9bUe4',
+                         '4js1VRb9bMe1','4js1VRb9bMe2','4js1VRb9bMe3','4js1VRb9bMe4']
+        elif self.template_type == 1 or self.template_type==2:
+            self.UDRs = ['4js1LJL400e1','4js1LJL400e2','4js1LJL400e3','4js1LJL400e4',
+                         '2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4']
         self.jet_uncert = []
-        for bmatch in ['bU','bM']:
-            for eta_bin in range(0,4):
-                region_str = '4js1VRb9'+bmatch+'e'+str(eta_bin+1)
-                self.jet_uncert.append( self.get_uncert( self.get_response( region_str )))
+        for region_str in self.UDRs:
+            self.jet_uncert.append(self.get_uncert(self.get_response(region_str)))
+            print (region_str,'uncertainty = ',self.jet_uncert[-1])
 
     def compute_dressed_masses(self,n_toys):
         self.n_toys=n_toys
@@ -211,14 +242,15 @@ class analyzer:
                                                          self.templates[0].bin_edges,
                                                          n_toys)
             self.dressed_mass_nom[i] = np.nan_to_num(result)
+
     def compute_shifted_masses(self):
         print('Generating shifted jet masses')
         self.dressed_mass_shift = np.zeros( self.dressed_mass_nom.shape )
         for i in range(4):
             jet_i = i+1
             col_jet_pt = self.df['jet_pt_'+str(jet_i)].values
-            col_jet_temp_bin = self.df['jet_temp_bin_'+str(jet_i)].values
-            self.dressed_mass_shift[i] = jitfunctions.apply_shift_mass(self.dressed_mass_nom[i],col_jet_temp_bin,self.jet_uncert)
+            col_jet_uncert_bin = self.df['jet_uncert_bin_'+str(jet_i)].values
+            self.dressed_mass_shift[i] = jitfunctions.apply_shift_mass(self.dressed_mass_nom[i],col_jet_uncert_bin,self.jet_uncert)
 
     def get_response(self,region_str):
         #TODO: clean up this shitty code
@@ -268,11 +300,11 @@ class analyzer:
             self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
         full_path = self.plot_path + region_str
         print('Creating directory %s'%full_path)
-        os.system('mkdir -p %s'%full_path)
-        os.system('chmod a+rx %s' %full_path)
+        if not os.path.exists(full_path):
+            os.mkdir(full_path)
         index = helpers.get_region_index(self.df,region_str,self.eta_bins)[0]
         kin_MJ = self.df.ix[index].MJ.values
-        dressed_MJ_systs = np.array([ self.dressed_MJ_syst[i][index] for i in range(self.n_systs) ])
+        dressed_MJ_systs = np.array([ self.dressed_MJ_syst[i][index] for i in range(len(self.UDRs)) ])
         weights = self.df.ix[index].weight.values
         MJ_hists = jitfunctions.apply_get_MJ_hists(kin_MJ,self.dressed_MJ_nom[index],dressed_MJ_systs,weights,self.MJ_bins)
         scale_factor = self.get_scale_factor(index)
@@ -305,8 +337,8 @@ class analyzer:
     def compute_dressed_MJ(self):
         print('Computing systematically shifted MJ distributions')
         self.dressed_MJ_nom = self.dressed_mass_nom[0]+self.dressed_mass_nom[1]+self.dressed_mass_nom[2]+np.nan_to_num(self.dressed_mass_nom[3])
-        temp_list = np.array([self.df['jet_temp_bin_'+str(i+1)].values for i in range(4)])
-        self.dressed_MJ_syst = jitfunctions.apply_get_shifted_MJ(self.dressed_mass_nom,self.dressed_mass_shift,temp_list)
+        jet_uncert_bins = np.array([self.df['jet_uncert_bin_'+str(i+1)].values for i in range(4)])
+        self.dressed_MJ_syst = jitfunctions.apply_get_shifted_MJ(self.dressed_mass_nom,self.dressed_mass_shift,jet_uncert_bins,len(self.UDRs))
 
     def get_scale_factor(self,index):
         kin_MJ = self.df.ix[index].MJ.values

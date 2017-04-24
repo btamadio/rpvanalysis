@@ -26,30 +26,40 @@ if config['inject_sig']:
     a.read_sig_from_root(config['sig_file'])
     a.inject_sig(config['sig_dsid'],config['sig_mult'])
 
-if 'template_type' in config:
-    a.template_type = config['template_type']
+if not 'template_type' in config:
+    config['template_type'] = 0
+
+a.template_type = config['template_type']
 
 a.compute_temp_bins()
 a.create_templates()
 a.verify_templates()
 a.compute_dressed_masses(10)
 
-response_list = ['UDR1l1e1','UDR1l1e2','UDR1l1e3','UDR1l1e4','UDR1l2e1','UDR1l2e2','UDR1l2e3','UDR1l2e4']
-
-for region_str in response_list:
-    a.plot_response(region_str)
-
-a.drop_2jet_events()
-a.compute_dressed_masses(config['n_toys'])
-
-response_list = ['UDR2l1e1','UDR2l1e2','UDR2l1e3','UDR2l1e4','UDR2l2e1','UDR2l2e2','UDR2l2e3','UDR2l2e4']
+response_list = ['UDR1l1e1','UDR1l1e2','UDR1l1e3','UDR1l1e4','UDR1l2e1','UDR1l2e2','UDR1l2e3','UDR1l2e4',
+                 'UDR1e1','UDR1e2','UDR1e3','UDR1e4']
 
 for region_str in response_list:
     a.plot_response(region_str)
 
 a.compute_uncertainties()
-a.compute_shifted_masses()
-a.compute_dressed_MJ()
 
-for region_str in config['MJ_plots']:
-    a.plot_MJ(region_str,blinded=config['blinded'])
+a.drop_2jet_events()
+a.compute_dressed_masses(config['n_toys'])
+
+response_list = ['UDR2l1e1','UDR2l1e2','UDR2l1e3','UDR2l1e4','UDR2l2e1','UDR2l2e2','UDR2l2e3','UDR2l2e4',
+                 'UDR2e1','UDR2e2','UDR2e3','UDR2e4']
+
+for region_str in response_list:
+    a.plot_response(region_str)
+
+if not 'blinded' in config:
+    config['blinded'] = False
+
+if 'MJ_plots' in config:
+    a.compute_uncert_bins()
+    a.compute_shifted_masses()
+    a.compute_dressed_MJ()
+
+    for region_str in config['MJ_plots']:
+        a.plot_MJ(region_str,blinded=config['blinded'])
