@@ -181,7 +181,7 @@ class analyzer:
         #label jets that belong to control region
         for i in range(1,5):
             mask = self.df['njet']==3
-            mask &= (self.df['jet_bmatched_'+str(i)]==0) | (self.df['jet_bmatched_'+str(i)]==1)&(self.df['dEta']>1.4)
+            mask &= self.df['dEta']>1.4
             self.df['jet_is_CR_'+str(i)] = mask.astype(int)
 
         print(' making reindexed data frames for CR jets')
@@ -345,6 +345,19 @@ class analyzer:
         response = self.get_response(region_str)
         print('plotting response for region',region_str)
         return plotters.plot_response(response,self.plot_path,self.canvas,region_str,self.pt_bins,self.eta_bins,self.lumi_label,self.mc_label)
+
+    def plot_template_compare(self,temp_bin_1,temp_bin_2):
+        rand_str = plotters.get_random_string()
+        can_name = 'can'
+        if self.canvas is None:
+            self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
+        full_path = self.plot_path + 'templates'
+        print('Creating directory %s'%full_path)
+        if not os.path.exists(full_path):
+            os.mkdir(full_path)
+        temp_1 = self.templates[temp_bin_1]
+        temp_2 = self.templates[temp_bin_2]
+        return plotters.plot_template_compare(temp_1,temp_2,self.template_type,self.plot_path,self.canvas,self.lumi_label,self.mc_label)
 
     def verify_templates(self):
         print('Verifying templates')
