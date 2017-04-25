@@ -62,7 +62,10 @@ if 'MJ_plots' in config:
     a.compute_dressed_MJ()
 
     for region_str in config['MJ_plots']:
-        a.plot_MJ(region_str,blinded=config['blinded'])
+        if 'SR' in region_str:
+            a.plot_MJ(region_str,blinded=config['blinded'])
+        else:
+            a.plot_MJ(region_str)
 if 'response_plots' in config:
     for region_str in config['response_plots']:
         a.plot_response(region_str)
