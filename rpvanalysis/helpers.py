@@ -46,8 +46,11 @@ class template:
         self.n_eff[ self.n_eff == np.nan ] = 0
 
 def get_region_index(df,region_string,eta_bins):
+    if region_string == '3jCR':
+        mask = df['njet']==3
+        mask &= ((df['nbjet']>0)&(df['dEta']>1.4) | (df['nbjet']==0))
+        return [ df[mask].index for _ in range(3) ]
     #Given a region string, return a list corresponding to the index of jets for that region
-
     if region_string.startswith('UDR1'):
         region_string = '2jLJG400'+region_string[4:]
     elif region_string.startswith('UDR2'):

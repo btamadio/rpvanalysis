@@ -14,6 +14,9 @@ def get_random_string(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
 def get_region_label(region_str):
+    if region_str == '3jCR':
+        lines = ['N_{jet} = 3','control region']
+        return make_splitline(lines)
     if region_str.startswith('UDR1'):
         region_str = '2jLJG400'+region_str[4:]
     elif region_str.startswith('UDR2'):
@@ -61,6 +64,26 @@ def make_splitline(lines):
         return lines[0]
     else:
         return '#splitline{'+make_splitline(lines[:-1])+'}{'+lines[-1]+'}'
+
+def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_label,mc_label):
+    h1 = ROOT.TH1F('temp_1','temp_1',len(temp_1.bin_centers),array.array('d',temp_1.bin_edges))
+    h2 = ROOT.TH1F('temp_2','temp_2',len(temp_2.bin_centers),array.array('d',temp_2.bin_edges))
+    for i in range(h1.GetNbinsX()):
+        bin = i+1
+        h1.SetBinContent(bin,temp_1.probs[i])
+        h2.SetBinContent(bin,temp_2.probs[i])
+    canvas.cd()
+    h1.SetLineColor(ROOT.kBlack)
+    h2.SetLineColor(ROOT.kRed)
+    h1.Draw('hist')
+    h2.Draw('hist same')
+
+    file_name = 'plot_template.png'
+    full_path = plot_path.rstrip('/')+'/templates/'
+    print('Saving plot to %s'%full_path+file_name)
+    canvas.Print(full_path+file_name)
+    os.system('chmod a+r ' + full_path+file_name)
+    return(h1,h2)
 
 def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
     kin_sumw,kin_sumw2,dress_nom_matrix,dress_syst_matrix = MJ_hists
@@ -133,7 +156,7 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
     dressed_hist_down.SetLineWidth(2)            
 
     err_hist.SetMinimum(0.5)
-    err_hist.SetMaximum( np.ceil(err_hist.GetMaximum()/1000 )*1000)
+    err_hist.SetMaximum( np.ceil(err_hist.GetMaximum()/10000 )*10000)
 
     err_hist.Draw('e2')
     dressed_hist.Draw('same')
@@ -380,3 +403,8 @@ def plot_template(t):
     plt.xlabel('$log(m/p_T)$')
     plt.ylabel('jets')
     plt.show()
+
+def make_webpage(plot_path):
+    url = plot_path.rstrip('/')+'/plots.html'
+    with open(url,'w') as f:
+        f.write('test!')

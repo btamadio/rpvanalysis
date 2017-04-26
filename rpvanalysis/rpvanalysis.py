@@ -181,7 +181,7 @@ class analyzer:
         #label jets that belong to control region
         for i in range(1,5):
             mask = self.df['njet']==3
-            mask &= self.df['dEta']>1.4
+            mask &= ((self.df['nbjet']>0)&(self.df['dEta']>1.4) | (self.df['nbjet']==0))
             self.df['jet_is_CR_'+str(i)] = mask.astype(int)
 
         print(' making reindexed data frames for CR jets')
@@ -215,16 +215,16 @@ class analyzer:
         result = 0.0
         count = 0
         for i in range(dressed_mean.shape[0]):
-            if self.template_type == 3:
+            if self.template_type > 0:
                 if bin_i < 4 and self.pt_bins[i] < 0.4:
                     continue
                 if bin_i >= 4 and self.pt_bins[i] > 0.4:
                     continue
-            else:
-                if 'LJG400' in region_str and self.pt_bins[i] < 0.4:
-                    continue
-                if 'LJL400' in region_str and self.pt_bins[i] > 0.4:
-                    continue
+            # else:
+            #     if 'LJG400' in region_str and self.pt_bins[i] < 0.4:
+            #         continue
+            #     if 'LJL400' in region_str and self.pt_bins[i] > 0.4:
+            #         continue
             if dressed_mean[i] > 1e-6 and kin_mean[i] > 1e-6:
                 result += np.square ( (kin_mean[i] - dressed_mean[i])/dressed_mean[i] )
                 count+=1
@@ -237,10 +237,10 @@ class analyzer:
         if self.template_type == 0:
             self.UDRs = ['4js1VRb9bUe1','4js1VRb9bUe2','4js1VRb9bUe3','4js1VRb9bUe4',
                          '4js1VRb9bMe1','4js1VRb9bMe2','4js1VRb9bMe3','4js1VRb9bMe4']
-        elif self.template_type == 1 or self.template_type==2:
-            self.UDRs = ['4js1LJL400e1','4js1LJL400e2','4js1LJL400e3','4js1LJL400e4',
-                         '2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4']
-        elif self.template_type == 3:
+        # elif self.template_type == 1 or self.template_type==2:
+        #     self.UDRs = ['4js1LJL400e1','4js1LJL400e2','4js1LJL400e3','4js1LJL400e4',
+        #                  '2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4']
+        elif self.template_type > 0:
             self.UDRs = ['2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4',
                          '2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4']
         self.jet_uncert = []

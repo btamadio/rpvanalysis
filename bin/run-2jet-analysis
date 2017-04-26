@@ -37,7 +37,7 @@ a.verify_templates()
 a.compute_dressed_masses(10)
 
 response_list = ['UDR1l1e1','UDR1l1e2','UDR1l1e3','UDR1l1e4','UDR1l2e1','UDR1l2e2','UDR1l2e3','UDR1l2e4',
-                 'UDR1e1','UDR1e2','UDR1e3','UDR1e4']
+                 'UDR1e1','UDR1e2','UDR1e3','UDR1e4','3jVRb1','3jb0','3jCR']
 
 for region_str in response_list:
     a.plot_response(region_str)
