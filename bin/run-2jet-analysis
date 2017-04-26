@@ -69,3 +69,5 @@ if 'MJ_plots' in config:
 if 'response_plots' in config:
     for region_str in config['response_plots']:
         a.plot_response(region_str)
+
+a.make_webpage()

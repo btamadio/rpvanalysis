@@ -244,7 +244,6 @@ def apply_get_scale_factor(kin_MJ,dressed_MJ,weights,norm_low,norm_high):
 def apply_get_shifted_MJ(dm_nom_list,dm_shift_list,jet_uncert_bins,n_systs):
     #dm_nom_list = n_jet x n_events x n_toys
     #dm_shift_list = n_jet x n_events x n_toys
-    #temp_list = n_jet x n_events
     #result = n_systs x n_events x n_toys
     n_jet=dm_nom_list.shape[0]
     n_events = dm_nom_list.shape[1]

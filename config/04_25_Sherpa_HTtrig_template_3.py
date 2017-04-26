@@ -1,6 +1,6 @@
 {
 "date": "04_25",
-"job_name": "sherpa_HTtrig_template_1",
+"job_name": "sherpa_HTtrig_template_3",
 "bkg_file": "data/HT_trig/sherpa_HTtrig_njet2.csv",
 "web_path": "/project/projectdirs/atlas/www/multijet/RPV/btamadio/bkgEstimation/",
 "is_mc": true,

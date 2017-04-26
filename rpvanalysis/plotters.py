@@ -65,24 +65,107 @@ def make_splitline(lines):
     else:
         return '#splitline{'+make_splitline(lines[:-1])+'}{'+lines[-1]+'}'
 
-def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_label,mc_label):
+def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_label,mc_label,pt_min,pt_max,eta_min,eta_max,temp_bin):
     h1 = ROOT.TH1F('temp_1','temp_1',len(temp_1.bin_centers),array.array('d',temp_1.bin_edges))
     h2 = ROOT.TH1F('temp_2','temp_2',len(temp_2.bin_centers),array.array('d',temp_2.bin_edges))
     for i in range(h1.GetNbinsX()):
         bin = i+1
-        h1.SetBinContent(bin,temp_1.probs[i])
-        h2.SetBinContent(bin,temp_2.probs[i])
+        h1.SetBinContent(bin,temp_1.sumw[i])
+        h2.SetBinContent(bin,temp_2.sumw[i])
+        h1.SetBinError(bin,np.sqrt(temp_1.sumw2[i]))
+        h2.SetBinError(bin,np.sqrt(temp_2.sumw2[i]))
+    h1.Scale(1./h1.Integral())
+    h2.Scale(1./h2.Integral())
     canvas.cd()
-    h1.SetLineColor(ROOT.kBlack)
-    h2.SetLineColor(ROOT.kRed)
-    h1.Draw('hist')
-    h2.Draw('hist same')
+    rand_str = get_random_string()
+    p1 = ROOT.TPad('p1_'+rand_str,'p1_'+rand_str,0,0.3,1,1.0)
+    p1.SetBottomMargin(0.01)
+    p1.Draw()
+    p1.cd()
+    p1.SetLogy()
 
-    file_name = 'plot_template.png'
+    h1.SetMarkerStyle(20)
+    h1.SetMarkerColor(ROOT.kBlack)
+    h1.SetLineColor(ROOT.kBlack)
+
+    h2.SetMarkerStyle(20)
+    h2.SetLineColor(ROOT.kRed)
+    h2.SetMarkerColor(ROOT.kRed)
+
+    h1.GetYaxis().SetTitle('fraction of jets')
+    h1.GetYaxis().SetTitleSize(20)
+    h1.GetYaxis().SetTitleFont(43)
+    h1.GetYaxis().SetTitleOffset(1.55)
+    h1.GetYaxis().SetLabelFont(43)
+    h1.GetYaxis().SetLabelSize(15)    
+
+
+    h1.Draw('e ')
+    h2.Draw('e same')
+
+    file_name = 'plot_template_'+str(temp_bin)+'.png'
     full_path = plot_path.rstrip('/')+'/templates/'
+    ROOT.ATLASLabel(0.25,0.85,'Internal',0.05,0.115,1)
+
+    lat = ROOT.TLatex()
+    if mc_label:
+        lat.DrawLatexNDC(0.25,0.78,lumi_label+' fb^{-1} '+mc_label)
+    else:
+        lat.DrawLatexNDC(0.2,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
+
+    lat.DrawLatexNDC(0.5,0.3,'%i GeV < p_{T} < %i GeV' % ( int(1000*pt_min),int(1000*pt_max)))
+    lat.DrawLatexNDC(0.5,0.15,'%.1f < |#eta| < %.1f' % (eta_min,eta_max))
+
+    labels = ('leading 2 jets','3rd leading jet')
+    if template_type == 0:
+        labels = ('non-b-match','b-match')
+    leg = ROOT.TLegend(0.6,0.55,0.8,0.75)
+
+    leg.AddEntry(h1,labels[0],'LP')
+    leg.AddEntry(h2,labels[1],'LP')
+
+    leg.SetLineColor(0)
+    leg.SetTextSize(0.05)
+    leg.SetShadowColor(0)
+    leg.SetFillStyle(0)
+    leg.SetFillColor(0)
+    leg.Draw()
+    canvas.cd()
+
+    p2 = ROOT.TPad('p2_'+rand_str,'p2_'+rand_str,0,0.05,1,0.3)
+    p2.SetTopMargin(0)
+    p2.SetBottomMargin(0.2)
+    p2.SetGridy()
+    p2.Draw()
+    p2.cd()
+
+    ratio_hist = h1.Clone('ratio_hist')
+    ratio_hist.Divide(h2)
+
+    ratio_hist.Draw('e2')
+
+    ratio_hist.GetYaxis().SetTitle('ratio')
+    ratio_hist.SetMinimum(0.78)
+    ratio_hist.SetMaximum(1.22)
+    ratio_hist.GetYaxis().SetNdivisions(505)
+    ratio_hist.GetYaxis().SetTitleSize(18)
+    ratio_hist.GetYaxis().SetTitleFont(43)
+    ratio_hist.GetYaxis().SetTitleOffset(1.55)
+    ratio_hist.GetYaxis().SetLabelFont(43)
+    ratio_hist.GetYaxis().SetLabelSize(15)
+    ratio_hist.GetXaxis().SetTitleSize(18)
+    ratio_hist.GetXaxis().SetTitleFont(43)
+    ratio_hist.GetXaxis().SetTitleOffset(4)
+    ratio_hist.GetXaxis().SetLabelFont(43)
+    ratio_hist.GetXaxis().SetLabelSize(15)
+    ratio_hist.GetXaxis().SetTitle('log(m/p_{T})')
+    ratio_hist.SetMinimum(0.0)
+    ratio_hist.SetMaximum(1.7)
+
     print('Saving plot to %s'%full_path+file_name)
     canvas.Print(full_path+file_name)
     os.system('chmod a+r ' + full_path+file_name)
+
     return(h1,h2)
 
 def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):

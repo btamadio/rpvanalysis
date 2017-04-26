@@ -346,18 +346,28 @@ class analyzer:
         print('plotting response for region',region_str)
         return plotters.plot_response(response,self.plot_path,self.canvas,region_str,self.pt_bins,self.eta_bins,self.lumi_label,self.mc_label)
 
-    def plot_template_compare(self,temp_bin_1,temp_bin_2):
-        rand_str = plotters.get_random_string()
-        can_name = 'can'
-        if self.canvas is None:
-            self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
+    def plot_template_compare(self):
+#        for i in range(len(self.pt_bins)-1):
+#            for j in range(len(self.eta_bins)-1):
         full_path = self.plot_path + 'templates'
-        print('Creating directory %s'%full_path)
         if not os.path.exists(full_path):
+            print('Creating directory %s'%full_path)
             os.mkdir(full_path)
-        temp_1 = self.templates[temp_bin_1]
-        temp_2 = self.templates[temp_bin_2]
-        return plotters.plot_template_compare(temp_1,temp_2,self.template_type,self.plot_path,self.canvas,self.lumi_label,self.mc_label)
+        temp_bin = 0
+        for i in range(len(self.pt_bins)-1):
+            for j in range(len(self.eta_bins)-1):
+                pt_min = self.pt_bins[i]
+                pt_max = self.pt_bins[i+1]
+                eta_min = self.eta_bins[j]
+                eta_max = self.eta_bins[j+1]
+                
+                rand_str = plotters.get_random_string()
+                can_name = 'can'
+                if self.canvas is None:
+                    self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
+                temp_1 = self.templates[temp_bin]
+                temp_2 = self.templates[temp_bin+60]
+                plotters.plot_template_compare(temp_1,temp_2,self.template_type,self.plot_path,self.canvas,self.lumi_label,self.mc_label,pt_min,pt_max,eta_min,eta_max,temp_bin)                
 
     def verify_templates(self):
         print('Verifying templates')
