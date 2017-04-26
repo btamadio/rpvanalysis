@@ -379,3 +379,6 @@ class analyzer:
         kin_MJ = self.df.ix[index].MJ.values
         weights = self.df.ix[index].weight.values
         return jitfunctions.apply_get_scale_factor(kin_MJ,self.dressed_MJ_nom[index],weights,self.norm_region[0],self.norm_region[1])
+
+    def make_webpage(self):
+        plotters.make_webpage(self.plot_path)

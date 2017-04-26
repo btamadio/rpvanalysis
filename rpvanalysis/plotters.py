@@ -407,4 +407,34 @@ def plot_template(t):
 def make_webpage(plot_path):
     url = plot_path.rstrip('/')+'/plots.html'
     with open(url,'w') as f:
-        f.write('test!')
+        f.write('<HTML><BODY> <CENTER><TABLE border=3>')
+
+        f.write('<TR>')
+        for region_str in ['3jb0','3jVRb1','3jCR']:
+            f.write('<TD><img src = "%s/plot_mass_response.png" height = "800" width = "800"></TD>' % region_str)
+        f.write('</TR>')
+
+
+        f.write('<TR>')
+        for region_str in ['UDR1e1','UDR1e2','UDR1e3','UDR1e4']:
+            f.write('<TD><img src = "%s/plot_mass_response.png" height = "800" width = "800"></TD>' % region_str)
+        f.write('</TR>')
+
+        f.write('<TR>')
+        for region_str in ['UDR2e1','UDR2e2','UDR2e3','UDR2e4']:
+            f.write('<TD><img src = "%s/plot_mass_response.png" height = "800" width = "800"></TD>' % region_str)
+        f.write('</TR>')
+
+
+        f.write('<TR>')
+        for region_str in ['4jVRb1','4jVRb9','4jSRb1','4jSRb9']:
+            f.write('<TD><img src = "%s/plot_MJ.png" height = "800" width = "800"></TD>' % region_str)
+        f.write('</TR>')
+
+        f.write('<TR>')
+        for region_str in ['5jVRb1','5jVRb9','5jSRb1','5jSRb9']:
+            f.write('<TD><img src = "%s/plot_MJ.png" height = "800" width = "800"></TD>' % region_str)
+        f.write('</TR>')
+
+        f.write('</TABLE></HTML>')
+        
