@@ -27,6 +27,8 @@ class root2csv:
                     print ('processing entry %i' % entry)
                 row = []
                 self.tree.GetEntry(entry)
+                if self.tree.weight > 1e9:
+                    continue
                 for feature in feature_list:
                     branch = getattr(self.tree,feature)
                     if '.vector<' in str(type(branch)):
