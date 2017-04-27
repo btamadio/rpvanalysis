@@ -40,7 +40,7 @@ class analyzer:
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
-        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=1000000)
+        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])
         if is_mc:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
@@ -365,9 +365,10 @@ class analyzer:
                 can_name = 'can'
                 if self.canvas is None:
                     self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
-                temp_1 = self.templates[temp_bin]
-                temp_2 = self.templates[temp_bin+60]
-                plotters.plot_template_compare(temp_1,temp_2,self.template_type,self.plot_path,self.canvas,self.lumi_label,self.mc_label,pt_min,pt_max,eta_min,eta_max,temp_bin)                
+                temp_1 = self.templates[temp_bin+60]
+                temp_2 = self.templates[temp_bin]
+                plotters.plot_template_compare(temp_1,temp_2,self.template_type,self.plot_path,self.canvas,self.lumi_label,self.mc_label,pt_min,pt_max,eta_min,eta_max,temp_bin)
+                temp_bin+=1
 
     def verify_templates(self):
         print('Verifying templates')

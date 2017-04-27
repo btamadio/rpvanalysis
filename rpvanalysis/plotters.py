@@ -118,7 +118,7 @@ def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_labe
 
     labels = ('leading 2 jets','3rd leading jet')
     if template_type == 0:
-        labels = ('non-b-match','b-match')
+        labels = ('b-match','non-b-match')
     leg = ROOT.TLegend(0.6,0.55,0.8,0.75)
 
     leg.AddEntry(h1,labels[0],'LP')
@@ -141,8 +141,19 @@ def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_labe
 
     ratio_hist = h1.Clone('ratio_hist')
     ratio_hist.Divide(h2)
+    for i in range(ratio_hist.GetNbinsX()):
+        bin=i+1
+        a = temp_1.sumw[i]
+        b = temp_2.sumw[i]
+        if a==0 or b==0:
+            ratio_hist.SetBinContent(bin,0)
+        else:
+            sigma_a = np.sqrt( temp_1.sumw2[i] )
+            sigma_b = np.sqrt( temp_2.sumw2[i] )
+            err = np.sqrt( (sigma_a*sigma_a)/(a*a)+ (sigma_b*sigma_b) / (b*b) )
+            ratio_hist.SetBinError(bin,err)
 
-    ratio_hist.Draw('e2')
+    ratio_hist.Draw('e')
 
     ratio_hist.GetYaxis().SetTitle('ratio')
     ratio_hist.SetMinimum(0.78)
@@ -493,7 +504,7 @@ def make_webpage(plot_path):
         f.write('<HTML><BODY> <CENTER><TABLE border=3>')
 
         f.write('<TR>')
-        for region_str in ['3jb0','3jVRb1','3jCR']:
+        for region_str in ['3jb0','3jVRb1bU','3jVRb1bM','3jCR']:
             f.write('<TD><img src = "%s/plot_mass_response.png" height = "800" width = "800"></TD>' % region_str)
         f.write('</TR>')
 
@@ -508,6 +519,10 @@ def make_webpage(plot_path):
             f.write('<TD><img src = "%s/plot_mass_response.png" height = "800" width = "800"></TD>' % region_str)
         f.write('</TR>')
 
+        f.write('<TR>')
+        for region_str in ['UDR1bU','UDR1bM','UDR2bU','UDR2bM']:
+            f.write('<TD><img src = "%s/plot_mass_response.png" height = "800" width = "800"></TD>' % region_str)
+        f.write('</TR>')
 
         f.write('<TR>')
         for region_str in ['4jVRb1','4jVRb9','4jSRb1','4jSRb9']:
