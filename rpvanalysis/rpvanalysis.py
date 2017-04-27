@@ -13,6 +13,7 @@ class analyzer:
         print('Setting up analysis')
         self.template_type = 0
         self.web_path = ''
+        self.hist_path = '/project/projectdirs/atlas/btamadio/RPV_SUSY/PyMJ/hists'
         self.date = ''
         self.job_name = ''
         self.canvas = None
@@ -33,10 +34,17 @@ class analyzer:
     def make_plot_dir(self):
         #Create directory for saving plots
         self.plot_path = self.web_path.rstrip('/') + '/'+self.date + '_' + self.job_name + '/'
+        self.hist_path += '/'+self.date+'_'+self.job_name+'/'
         print('Creating output directory: %s ' % self.plot_path )
         if not os.path.exists(self.plot_path):
             os.mkdir(self.plot_path)
+
+        print('Creating output directory: %s'%self.hist_path)
+        if not os.path.exists(self.hist_path):
+            os.mkdir(self.hist_path)
         os.system('chmod a+rx %s'%self.plot_path)
+        os.system('chmod a+rx %s'%self.hist_path)
+        self.out_file = ROOT.TFile.Open(self.hist_path+'histograms.root','RECREATE')
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
@@ -331,8 +339,28 @@ class analyzer:
         MJ_hists = jitfunctions.apply_get_MJ_hists(kin_MJ,self.dressed_MJ_nom[index],dressed_MJ_systs,weights,self.MJ_bins)
         scale_factor = self.get_scale_factor(index)
         sr_yields = jitfunctions.apply_get_SR_yields(kin_MJ,self.dressed_MJ_nom[index],dressed_MJ_systs,weights,self.MJ_cut)
-        return plotters.plot_MJ(MJ_hists,scale_factor,sr_yields,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
-        
+        result =  plotters.plot_MJ(MJ_hists,scale_factor,sr_yields,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
+
+        kin_hist = result[0]
+        dressed_hist = result[1]
+        err_hist = result[2]
+        dressed_hist_up = result[3]
+        dressed_hist_down = result[4]
+
+        self.out_file.cd()
+        dressed_hist.SetName('dressed_MJ_%s'%region_str)
+        kin_hist.SetName('kin_MJ_%s'%region_str)
+        err_hist.SetName('err_MJ_%s'%region_str)
+        dressed_hist_up.SetName('dressed_MJ_up_%s'%region_str)
+        dressed_hist_down.SetName('dressed_MJ_down_%s'%region_str)
+
+        dressed_hist.Write()
+        kin_hist.Write()
+        err_hist.Write()
+        dressed_hist_up.Write()
+        dressed_hist_down.Write()
+
+        return result
     def plot_response(self,region_str):
         rand_str = plotters.get_random_string()
         can_name = 'can'
@@ -344,11 +372,17 @@ class analyzer:
         os.system('chmod a+rx %s' % (full_path))
         response = self.get_response(region_str)
         print('plotting response for region',region_str)
-        return plotters.plot_response(response,self.plot_path,self.canvas,region_str,self.pt_bins,self.eta_bins,self.lumi_label,self.mc_label)
+        result= plotters.plot_response(response,self.plot_path,self.canvas,region_str,self.pt_bins,self.eta_bins,self.lumi_label,self.mc_label)
+        dressed_hist = result[0]
+        kin_hist = result[1]
+        self.out_file.cd()
+        dressed_hist.SetName('dressed_mass_%s'%region_str)
+        kin_hist.SetName('kin_mass_%s'%region_str)
+        dressed_hist.Write()
+        kin_hist.Write()
+        return result
 
     def plot_template_compare(self):
-#        for i in range(len(self.pt_bins)-1):
-#            for j in range(len(self.eta_bins)-1):
         full_path = self.plot_path + 'templates'
         if not os.path.exists(full_path):
             print('Creating directory %s'%full_path)

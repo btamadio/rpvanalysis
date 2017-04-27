@@ -402,7 +402,6 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,eta_bins,lumi_lab
 
     dressed_hist.Draw()
     kin_hist.Draw('same ep')
-#    return [dressed_hist,kin_hist]
     dressed_hist.GetYaxis().SetTitle('<m_{jet}> [TeV]')
     dressed_hist.GetYaxis().SetTitleSize(20)
     dressed_hist.GetYaxis().SetTitleFont(43)
