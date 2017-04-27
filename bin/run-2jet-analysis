@@ -36,8 +36,7 @@ a.create_templates()
 a.verify_templates()
 a.compute_dressed_masses(10)
 
-response_list = ['UDR1l1e1','UDR1l1e2','UDR1l1e3','UDR1l1e4','UDR1l2e1','UDR1l2e2','UDR1l2e3','UDR1l2e4',
-                 'UDR1e1','UDR1e2','UDR1e3','UDR1e4','3jVRb1','3jb0','3jCR']
+response_list = ['UDR1bU','UDR1bM','UDR1e1','UDR1e2','UDR1e3','UDR1e4','3jVRb1','3jb0','3jCR','3jVRb1bM','3jVRb1bU']
 
 for region_str in response_list:
     a.plot_response(region_str)
@@ -47,8 +46,7 @@ a.compute_uncertainties()
 a.drop_2jet_events()
 a.compute_dressed_masses(config['n_toys'])
 
-response_list = ['UDR2l1e1','UDR2l1e2','UDR2l1e3','UDR2l1e4','UDR2l2e1','UDR2l2e2','UDR2l2e3','UDR2l2e4',
-                 'UDR2e1','UDR2e2','UDR2e3','UDR2e4']
+response_list = ['UDR2bU','UDR2bM','UDR2e1','UDR2e2','UDR2e3','UDR2e4']
 
 for region_str in response_list:
     a.plot_response(region_str)
@@ -66,8 +64,10 @@ if 'MJ_plots' in config:
             a.plot_MJ(region_str,blinded=config['blinded'])
         else:
             a.plot_MJ(region_str)
+
 if 'response_plots' in config:
     for region_str in config['response_plots']:
         a.plot_response(region_str)
-
+if a.template_type==3:
+    a.plot_template_compare()
 a.make_webpage()

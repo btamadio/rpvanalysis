@@ -49,3 +49,5 @@ if 'MJ_plots' in config:
     a.compute_shifted_masses()
     a.compute_dressed_MJ()
     [a.plot_MJ(region_str,config['blinded']) for region_str in config['MJ_plots']]
+a.plot_template_compare()
+a.make_webpage()
