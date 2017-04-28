@@ -138,9 +138,7 @@ class analyzer:
         for i in range(1,5):
             result = jitfunctions.apply_get_uncert_bin(self.df['jet_pt_'+str(i)].values,
                                                        self.df['jet_eta_'+str(i)].values,
-                                                       self.df['jet_bmatched_'+str(i)].values,
-                                                       self.eta_bins,
-                                                       self.template_type)
+                                                       self.eta_bins)
             self.df['jet_uncert_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_uncert_bin_'+str(i))
             
     def compute_temp_bins(self):
@@ -189,7 +187,7 @@ class analyzer:
         #label jets that belong to control region
         for i in range(1,5):
             mask = self.df['njet']==3
-            mask &= ((self.df['nbjet']>0)&(self.df['dEta']>1.4) | (self.df['nbjet']==0))
+            mask &= (self.df['jet_bmatched_'+str(i)]==0) | (self.df['jet_bmatched_'+str(i)]==1)&(self.df['dEta']>1.4)
             self.df['jet_is_CR_'+str(i)] = mask.astype(int)
 
         print(' making reindexed data frames for CR jets')
@@ -223,16 +221,10 @@ class analyzer:
         result = 0.0
         count = 0
         for i in range(dressed_mean.shape[0]):
-            if self.template_type > 0:
-                if bin_i < 4 and self.pt_bins[i] < 0.4:
-                    continue
-                if bin_i >= 4 and self.pt_bins[i] > 0.4:
-                    continue
-            # else:
-            #     if 'LJG400' in region_str and self.pt_bins[i] < 0.4:
-            #         continue
-            #     if 'LJL400' in region_str and self.pt_bins[i] > 0.4:
-            #         continue
+            if bin_i < 4 and self.pt_bins[i] < 0.4:
+                continue
+            if bin_i >= 4 and self.pt_bins[i] > 0.4:
+                continue
             if dressed_mean[i] > 1e-6 and kin_mean[i] > 1e-6:
                 result += np.square ( (kin_mean[i] - dressed_mean[i])/dressed_mean[i] )
                 count+=1
@@ -242,15 +234,8 @@ class analyzer:
             
     def compute_uncertainties(self):
         #Loop over UDRs and calculate uncertainties
-        if self.template_type == 0:
-            self.UDRs = ['4js1VRb9bUe1','4js1VRb9bUe2','4js1VRb9bUe3','4js1VRb9bUe4',
-                         '4js1VRb9bMe1','4js1VRb9bMe2','4js1VRb9bMe3','4js1VRb9bMe4']
-        # elif self.template_type == 1 or self.template_type==2:
-        #     self.UDRs = ['4js1LJL400e1','4js1LJL400e2','4js1LJL400e3','4js1LJL400e4',
-        #                  '2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4']
-        elif self.template_type > 0:
-            self.UDRs = ['2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4',
-                         '2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4']
+        self.UDRs = ['2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4',
+                     '2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4']
         self.jet_uncert = []
         for i,region_str in enumerate(self.UDRs):
             self.jet_uncert.append(self.get_uncert(region_str,i))

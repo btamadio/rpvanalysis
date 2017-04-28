@@ -46,10 +46,23 @@ class template:
         self.n_eff[ self.n_eff == np.nan ] = 0
 
 def get_region_index(df,region_string,eta_bins):
-    if region_string == '3jCR':
-        mask = df['njet']==3
-        mask &= ((df['nbjet']>0)&(df['dEta']>1.4) | (df['nbjet']==0))
-        return [ df[mask].index for _ in range(3) ]
+    if region_string.startswith('3jCR'):
+        masks = []
+        for i in range(3):
+            jet_i = i+1
+            masks.append( (df['njet']==3) & ((df['jet_bmatched_'+str(jet_i)]>0)&(df['dEta']>1.4) | (df['jet_bmatched_'+str(jet_i)]==0)) )
+            if 'bM' in region_string:
+                masks[-1] &= df['jet_bmatched_'+str(jet_i)]==1
+            elif 'bU' in region_string:
+                masks[-1] &= df['jet_bmatched_'+str(jet_i)]==0
+        if 'l1' in region_string:
+            return [ masks[0], masks[1], [] ]
+        elif 'l3' in region_string:
+            return [ [], [], masks[2] ]
+
+        else:
+            return masks
+
     #Given a region string, return a list corresponding to the index of jets for that region
     if region_string.startswith('UDR1'):
         region_string = '2jLJG400'+region_string[4:]

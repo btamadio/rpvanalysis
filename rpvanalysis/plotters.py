@@ -14,8 +14,16 @@ def get_random_string(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
 def get_region_label(region_str):
-    if region_str == '3jCR':
+    if region_str.startswith('3jCR'):
         lines = ['N_{jet} = 3','control region']
+        if 'l1' in region_str:
+            lines.append('first two leading jets')
+        elif 'l3' in region_str:
+            lines.append('third leading jet')
+        elif 'bM' in region_str:
+            lines.append('b-matched')
+        elif 'bU' in region_str:
+            lines.append('non-b-matched')
         return make_splitline(lines)
     if region_str.startswith('UDR1'):
         region_str = '2jLJG400'+region_str[4:]
@@ -503,7 +511,7 @@ def make_webpage(plot_path):
         f.write('<HTML><BODY> <CENTER><TABLE border=3>')
 
         f.write('<TR>')
-        for region_str in ['3jb0','3jVRb1bU','3jVRb1bM','3jCR']:
+        for region_str in ['3jCRl1','3jCRl3','3jCRbU','3jCRbM']:
             f.write('<TD><img src = "%s/plot_mass_response.png" height = "800" width = "800"></TD>' % region_str)
         f.write('</TR>')
 

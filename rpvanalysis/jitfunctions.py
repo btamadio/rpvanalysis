@@ -36,24 +36,17 @@ def get_temp_bin(pt,eta,bmatch,pt_bins,eta_bins):
     return 60*bmatch+4*pt_bin+eta_bin
 
 @numba.jit(nopython=True)
-def apply_get_uncert_bin(col_pt,col_eta,col_bmatch,eta_bins,template_type):
+def apply_get_uncert_bin(col_pt,col_eta,eta_bins):
     n=len(col_pt)
-    assert n==len(col_eta) == len(col_bmatch)
+    assert n==len(col_eta)
     result = np.zeros(n,dtype=np.int32)
     for i in range(n):
         bin = -1
-        if template_type==0:
-            for j in range(0,len(eta_bins)-1):
-                if abs(col_eta[i]) >= eta_bins[j] and abs(col_eta[i]) < eta_bins[j+1]:
-                    bin=j
-            if col_bmatch[i]==1:
-                bin+=4
-        if template_type==1 or template_type==2 or template_type==3:
-            for j in range(0,len(eta_bins)-1):
-                if abs(col_eta[i]) >= eta_bins[j] and abs(col_eta[i]) < eta_bins[j+1]:
-                    bin=j
-            if col_pt[i] > 0.4:
-                bin+=4
+        for j in range(0,len(eta_bins)-1):
+            if abs(col_eta[i]) >= eta_bins[j] and abs(col_eta[i]) < eta_bins[j+1]:
+                bin=j
+        if col_pt[i] > 0.4:
+            bin+=4
         result[i] = bin
     return result
 
@@ -219,9 +212,7 @@ def apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,MJ_cut):
             pred_yield_syst[k] += pred_sumw_systs[k][j]
         pred_yield_syst[k] /= n_toys
         pred_syst += abs(pred_yield_syst[k] - pred_yield)
-    kin_uncert = 0.0
-    if kin_sumw2 > 0:
-        kin_uncert = np.sqrt( kin_sumw*kin_sumw / kin_sumw2 )
+    kin_uncert = np.sqrt( kin_sumw2 )
     return( kin_sumw, kin_uncert, pred_yield, pred_stat, pred_syst )
 
 @numba.jit(nopython=True)

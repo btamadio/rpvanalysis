@@ -36,7 +36,7 @@ a.create_templates()
 a.verify_templates()
 a.compute_dressed_masses(10)
 
-response_list = ['UDR1bU','UDR1bM','UDR1e1','UDR1e2','UDR1e3','UDR1e4','3jVRb1','3jb0','3jCR','3jVRb1bM','3jVRb1bU']
+response_list = ['UDR1bU','UDR1bM','UDR1e1','UDR1e2','UDR1e3','UDR1e4']
 
 for region_str in response_list:
     a.plot_response(region_str)
@@ -46,7 +46,7 @@ a.compute_uncertainties()
 a.drop_2jet_events()
 a.compute_dressed_masses(config['n_toys'])
 
-response_list = ['UDR2bU','UDR2bM','UDR2e1','UDR2e2','UDR2e3','UDR2e4']
+response_list = ['UDR2bU','UDR2bM','UDR2e1','UDR2e2','UDR2e3','UDR2e4','3jCR','3jCRbM','3jCRbU','3jCRl1','3jCRl3']
 
 for region_str in response_list:
     a.plot_response(region_str)
@@ -68,6 +68,7 @@ if 'MJ_plots' in config:
 if 'response_plots' in config:
     for region_str in config['response_plots']:
         a.plot_response(region_str)
-if a.template_type==3:
+
+if a.template_type==3 or a.template_type==0:
     a.plot_template_compare()
 a.make_webpage()
