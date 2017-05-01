@@ -46,7 +46,8 @@ a.compute_uncertainties()
 a.drop_2jet_events()
 a.compute_dressed_masses(config['n_toys'])
 
-response_list = ['UDR2bU','UDR2bM','UDR2e1','UDR2e2','UDR2e3','UDR2e4','3jCR','3jCRbM','3jCRbU','3jCRl1','3jCRl3']
+response_list = ['UDR2bU','UDR2bM','UDR2e1','UDR2e2','UDR2e3','UDR2e4','3jCR','3jCRbM','3jCRbU','3jCRl1','3jCRl3',
+                 '4jbU','4jbM','5jbU','5jbM']
 
 for region_str in response_list:
     a.plot_response(region_str)
@@ -58,8 +59,9 @@ if 'MJ_plots' in config:
     a.compute_uncert_bins()
     a.compute_shifted_masses()
     a.compute_dressed_MJ()
-
+    print(' creating MJ plots')
     for region_str in config['MJ_plots']:
+        print(region_str)
         if 'SR' in region_str:
             a.plot_MJ(region_str,blinded=config['blinded'])
         else:

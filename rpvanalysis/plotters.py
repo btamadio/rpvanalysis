@@ -112,6 +112,7 @@ def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_labe
     h2.Draw('e same')
 
     file_name = 'plot_template_'+str(temp_bin)+'.png'
+    file_name_pdf = 'plot_template_'+str(temp_bin)+'.pdf'
     full_path = plot_path.rstrip('/')+'/templates/'
     ROOT.ATLASLabel(0.25,0.85,'Internal',0.05,0.115,1)
 
@@ -183,8 +184,8 @@ def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_labe
 
     print('Saving plot to %s'%full_path+file_name)
     canvas.Print(full_path+file_name)
-    os.system('chmod a+r ' + full_path+file_name)
-
+    canvas.Print(full_path+file_name_pdf)
+    os.system('chmod a+r ' + full_path+'*')
     return(h1,h2)
 
 def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
@@ -365,10 +366,12 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
     canvas.cd()
     canvas.Update()
     file_name = 'plot_MJ.png'
+    file_name_pdf = 'plot_MJ.pdf'
     full_path = plot_path.rstrip('/')+'/'+region_str+'/'
     print('Saving plot to %s'%full_path+file_name)
     canvas.Print(full_path+file_name)
-    os.system('chmod a+r ' + full_path+file_name)
+    canvas.Print(full_path+file_name_pdf)
+    os.system('chmod a+r ' + full_path+'*')
     return return_list 
 
 def plot_response(response,plot_path,canvas,region_str,pt_bins,eta_bins,lumi_label='36.5',mc_label=''):
@@ -487,9 +490,12 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,eta_bins,lumi_lab
     return_list = [dressed_hist,kin_hist,ratio_hist,lat,leg]
 
     file_name = 'plot_mass_response.png'
+    file_name_pdf = 'plot_mass_response.pdf'
     full_path = plot_path+'/'+region_str+'/'+file_name
+    full_path_pdf = plot_path+'/'+region_str+'/'+file_name_pdf
     print('Saving plot to %s'%full_path)
     canvas.Print(full_path)
+    canvas.Print(full_path_pdf)
     os.system('chmod a+r %s/%s/*' % (plot_path,region_str))
     return [dressed_hist,kin_hist,ratio_hist,lat,leg]
 
