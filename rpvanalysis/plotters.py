@@ -10,6 +10,7 @@ ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasStyle.C')
 ROOT.gROOT.LoadMacro('/global/homes/b/btamadio/atlasstyle/AtlasLabels.C')
 ROOT.SetAtlasStyle()
 ROOT.gROOT.SetBatch()
+
 def get_random_string(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
@@ -72,6 +73,88 @@ def make_splitline(lines):
         return lines[0]
     else:
         return '#splitline{'+make_splitline(lines[:-1])+'}{'+lines[-1]+'}'
+
+def temp_key_to_bin(key):
+    bmatch = 0
+    if key > 59:
+        bmatch = 1
+        key -= 60
+    pt_bin = int(key/4)
+    eta_bin = key%4
+    return( (pt_bin,eta_bin,bmatch) )
+
+def plot_template_stats(templates,plot_path,canvas,canvas2,lumi_label,mc_label,pt_bins,eta_bins):
+    h0 = ROOT.TH2F('h0','h0',len(pt_bins)-1,array.array('d',pt_bins),len(eta_bins)-1,array.array('d',eta_bins))
+    h1 = ROOT.TH2F('h1','h1',len(pt_bins)-1,array.array('d',pt_bins),len(eta_bins)-1,array.array('d',eta_bins))
+    h0.SetDirectory(0)
+    h1.SetDirectory(0)
+    for key in sorted(templates.keys()):
+        pt_bin,eta_bin,b_match = temp_key_to_bin(key)
+        if b_match == 0:
+            h0.SetBinContent( pt_bin+1, eta_bin+1, np.sum(templates[key].sumw))
+        elif b_match == 1:
+            h1.SetBinContent( pt_bin+1, eta_bin+1, np.sum(templates[key].sumw))
+    c0 = canvas
+    c0.cd()
+    h0.SetMarkerSize(1.75)
+    h0.Draw('text90')
+    h0.GetXaxis().SetLabelOffset(999)
+    h0.GetXaxis().SetTickLength(0)
+    h0.GetXaxis().SetTitle('jet p_{T} [GeV]')
+    h0.GetYaxis().SetTitle('jet |#eta|')
+
+    h0.GetYaxis().SetLabelOffset(999)
+    h0.GetYaxis().SetTickLength(0)
+    
+    t = ROOT.TText()
+    l = ROOT.TLine()
+    t.SetTextAngle(60)
+    t.SetTextSize(0.04)
+    t.SetTextAlign(33)
+    y = c0.GetUymin() - 0.1*h0.GetYaxis().GetBinWidth(1)
+    for pt_bin in pt_bins[:-1]:
+        t.DrawText(pt_bin,y,'%i'%(1000*pt_bin))
+        l.DrawLine(pt_bin,eta_bins[0],pt_bin,eta_bins[-1])
+        
+    t.SetTextAlign(32)
+    t.SetTextAngle(0)
+    for eta_bin in eta_bins:
+        t.DrawText(0.195,eta_bin,str(eta_bin))
+        l.DrawLine(pt_bins[0],eta_bin,pt_bins[-1],eta_bin)
+
+    c1 = canvas2
+    c1.cd()
+    h1.SetMarkerSize(1.75)
+    h1.Draw('text90')
+    h1.GetXaxis().SetLabelOffset(999)
+    h1.GetXaxis().SetTickLength(0)
+    h1.GetXaxis().SetTitle('jet p_{T} [GeV]')
+    h1.GetYaxis().SetTitle('jet |#eta|')
+
+    h1.GetYaxis().SetLabelOffset(999)
+    h1.GetYaxis().SetTickLength(0)
+    
+    t.SetTextAngle(60)
+    t.SetTextSize(0.04)
+    t.SetTextAlign(33)
+    y = c1.GetUymin() - 0.1*h1.GetYaxis().GetBinWidth(1)
+    for pt_bin in pt_bins[:-1]:
+        t.DrawText(pt_bin,y,'%i'%(1000*pt_bin))
+        l.DrawLine(pt_bin,eta_bins[0],pt_bin,eta_bins[-1])
+        
+    t.SetTextAlign(32)
+    t.SetTextAngle(0)
+    for eta_bin in eta_bins:
+        t.DrawText(0.195,eta_bin,str(eta_bin))
+        l.DrawLine(pt_bins[0],eta_bin,pt_bins[-1],eta_bin)
+    c0.Update()
+    c0.Print(plot_path+'templates/plot_template_stats_bU.png')
+    c0.Print(plot_path+'templates/plot_template_stats_bU.pdf')
+    c1.Update()
+    c1.Print(plot_path+'templates/plot_template_stats_bM.png')
+    c1.Print(plot_path+'templates/plot_template_stats_bM.pdf')
+
+    return(c0,c1,h0,h1,t,l)
 
 def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_label,mc_label,pt_min,pt_max,eta_min,eta_max,temp_bin):
     h1 = ROOT.TH1F('temp_1','temp_1',len(temp_1.bin_centers),array.array('d',temp_1.bin_edges))

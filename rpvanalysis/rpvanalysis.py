@@ -367,6 +367,16 @@ class analyzer:
         kin_hist.Write()
         return result
 
+    def plot_template_stats(self):
+        full_path = self.plot_path + 'templates'
+        if not os.path.exists(full_path):
+            print('Creating directory %s'%full_path)
+            os.mkdir(full_path)
+        if self.canvas is None:
+            self.canvas = ROOT.TCanvas('can','can',800,600)
+            self.canvas2 = ROOT.TCanvas('can2','can2',800,600)
+        return plotters.plot_template_stats(self.templates,self.plot_path,self.canvas,self.canvas2,self.lumi_label,self.mc_label,self.pt_bins,self.eta_bins)
+
     def plot_template_compare(self):
         full_path = self.plot_path + 'templates'
         if not os.path.exists(full_path):

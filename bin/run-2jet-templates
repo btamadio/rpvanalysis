@@ -35,4 +35,6 @@ a.compute_temp_bins()
 a.create_templates()
 a.verify_templates()
 
-a.plot_template_compare()
+a.plot_template_stats()
+
+#a.plot_template_compare()
