@@ -57,6 +57,53 @@ ection times 36.45/fb.
 
 `blinded`: If set to true, MJ plots for SRs will be blinded above 800 GeV
 
+### Running the baseline analysis
+
+After setting the web_path and hist_path in your config file, run:
+
+```
+bin/run-2jet-analysis <config_file>
+```
+
+### Making input .csv files
+
+The input files are in .csv format, and can be created from a root file using the following:
+
+```
+bin/convert <input_root_file> <output_csv_file>
+```
+
+The input root file must contain a TTree at the top level called "miniTree" with the following branches:
+
+#### scalars
+
+eventNumber
+
+njet
+
+njet_soft
+
+nbjet_Fix70
+
+MJ
+
+dEta
+
+weight
+
+### vectors
+
+jet_pt
+
+jet_eta
+
+jet_phi
+
+jet_m
+
+jet_bmatched_Fix70
+
+
 ## Author
 
 * **Brian Amadio**
