@@ -133,6 +133,19 @@ class analyzer:
             self.dressed_mass_nom = temp_dm
             print(self.dressed_mass_nom.shape,' events remaining')
 
+    def drop_3jet_events(self):
+        print('Dropping 3-jet events')
+        mask = self.df['njet']>3
+        self.df = self.df[mask]
+        self.df.index = np.arange(len(self.df))
+        print(len(self.df))
+        if self.dressed_mass_nom is not None:
+            temp_dm = np.zeros((4,len(self.df),self.n_toys))
+            for i in range(4):
+                temp_dm[i] = self.dressed_mass_nom[i][mask]
+            self.dressed_mass_nom = temp_dm
+            print(self.dressed_mass_nom.shape,' events remaining')
+
     def compute_uncert_bins(self):
         print('Determining uncertainty bins for all jets')
         for i in range(1,5):

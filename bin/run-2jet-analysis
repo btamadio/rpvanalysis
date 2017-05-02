@@ -55,6 +55,8 @@ for region_str in response_list:
 if not 'blinded' in config:
     config['blinded'] = False
 
+a.drop_3jet_events()
+
 if 'MJ_plots' in config:
     a.compute_uncert_bins()
     a.compute_shifted_masses()
