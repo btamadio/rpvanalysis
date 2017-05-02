@@ -77,31 +77,31 @@ The input root file must contain a TTree at the top level called "miniTree" with
 
 #### scalars
 
-eventNumber
+`eventNumber`
 
-njet
+`njet`
 
-njet_soft
+`njet_soft`
 
-nbjet_Fix70
+`nbjet_Fix70`
 
-MJ
+`MJ`
 
-dEta
+`dEta`
 
-weight
+`weight`
 
 ### vectors
 
-jet_pt
+`jet_pt`
 
-jet_eta
+`jet_eta`
 
-jet_phi
+`jet_phi`
 
-jet_m
+`jet_m`
 
-jet_bmatched_Fix70
+`jet_bmatched_Fix70`
 
 
 ## Author
