@@ -16,6 +16,7 @@ a = rpvanalysis.analyzer()
 a.date=config['date']
 a.job_name=config['job_name']
 a.web_path = config['web_path']
+a.hist_path = config['hist_path']
 if config['is_mc']:
     a.mc_label = config['mc_label']
 

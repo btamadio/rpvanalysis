@@ -13,7 +13,7 @@ class analyzer:
         print('Setting up analysis')
         self.template_type = 0
         self.web_path = ''
-        self.hist_path = '/project/projectdirs/atlas/btamadio/RPV_SUSY/PyMJ/hists'
+        self.hist_path = ''
         self.date = ''
         self.job_name = ''
         self.canvas = None
