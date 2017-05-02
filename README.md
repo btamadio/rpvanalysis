@@ -24,6 +24,10 @@ Configuration files are located in config/
 
 Look at the most recent date for the most up-to-date syntax. Config files from older dates may be obsolete.
 
+Config files are in json format (double quotes for strings) and have some required settings:
+
+`date`: This 
+
 ## Author
 
 * **Brian Amadio**
