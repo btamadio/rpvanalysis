@@ -55,7 +55,7 @@ ection times 36.45/fb.
 
 `MJ_plots`: List of regions for which to produce MJ plots
 
-`blinded`: If set to true, MJ plots for SRs will be blinded about 800 GeV
+`blinded`: If set to true, MJ plots for SRs will be blinded above 800 GeV
 
 ## Author
 
