@@ -156,9 +156,9 @@ def plot_template_stats(templates,plot_path,canvas,canvas2,lumi_label,mc_label,p
 
     return(c0,c1,h0,h1,t,l)
 
-def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_label,mc_label,pt_min,pt_max,eta_min,eta_max,temp_bin):
-    h1 = ROOT.TH1F('temp_1','temp_1',len(temp_1.bin_centers),array.array('d',temp_1.bin_edges))
-    h2 = ROOT.TH1F('temp_2','temp_2',len(temp_2.bin_centers),array.array('d',temp_2.bin_edges))
+def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_label,mc_label,pt_min,pt_max,eta_min,eta_max,temp_bin,out_file):
+    h1 = ROOT.TH1F('temp_'+str(temp_bin+60),'temp_1',len(temp_1.bin_centers),array.array('d',temp_1.bin_edges))
+    h2 = ROOT.TH1F('temp_'+str(temp_bin),'temp_2',len(temp_2.bin_centers),array.array('d',temp_2.bin_edges))
     for i in range(h1.GetNbinsX()):
         bin = i+1
         h1.SetBinContent(bin,temp_1.sumw[i])
@@ -269,6 +269,9 @@ def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_labe
     canvas.Print(full_path+file_name)
     canvas.Print(full_path+file_name_pdf)
     os.system('chmod a+r ' + full_path+'*')
+    out_file.cd()
+    h1.Write()
+    h2.Write()
     return(h1,h2)
 
 def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
@@ -674,8 +677,12 @@ def plot_MJ_shifts(MJ_hists,low_pt,scale_factor,plot_path,canvas,region_str,MJ_b
     err_hist = ROOT.TH1F('err_hist','err_hist',n_bins,array.array('d',MJ_bins))
     kin_hist = ROOT.TH1F('kin_hist','kin_hist',n_bins,array.array('d',MJ_bins))
     dressed_hist = ROOT.TH1F('dressed_hist','dressed_hist',n_bins,array.array('d',MJ_bins))
-    dressed_hist_up = ROOT.TH1F('dressed_hist_up','dressed_hist_up',n_bins,array.array('d',MJ_bins))
-    dressed_hist_down = ROOT.TH1F('dressed_hist_down','dressed_hist_down',n_bins,array.array('d',MJ_bins))
+    dressed_hist_up = ROOT.TH1F('dressed_hist_high_pt_up','dressed_hist_up',n_bins,array.array('d',MJ_bins))
+    dressed_hist_down = ROOT.TH1F('dressed_hist_high_pt_down','dressed_hist_down',n_bins,array.array('d',MJ_bins))
+
+    if low_pt:
+        dressed_hist_up.SetName('dressed_hist_low_pt_up')
+        dressed_hist_down.SetName('dressed_hist_low_pt_down')
 
     for i in range(n_bins):
         bin = i+1

@@ -48,7 +48,7 @@ class analyzer:
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
-        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=100000)
+        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])
         if is_mc:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
@@ -345,6 +345,25 @@ class analyzer:
             self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
         result[0] =  plotters.plot_MJ_shifts(MJ_hists,True,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
         result[1] =  plotters.plot_MJ_shifts(MJ_hists,False,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
+
+        err_hist = result[0][2]
+        dressed_hist_low_pt_up = result[0][3]
+        dressed_hist_low_pt_down = result[0][4]
+        dressed_hist_high_pt_up = result[1][3]
+        dressed_hist_high_pt_down = result[1][4]
+        self.out_file.cd()
+
+        err_hist.SetName('err_stat_MJ_%s'%region_str)
+        dressed_hist_low_pt_up.SetName('dressed_MJ_low_pt_up_%s'%region_str)
+        dressed_hist_low_pt_down.SetName('dressed_MJ_low_pt_down_%s'%region_str)
+        dressed_hist_high_pt_up.SetName('dressed_MJ_high_pt_up_%s'%region_str)
+        dressed_hist_high_pt_down.SetName('dressed_MJ_high_pt_down_%s'%region_str)
+
+        err_hist.Write()
+        dressed_hist_low_pt_up.Write()
+        dressed_hist_low_pt_down.Write()
+        dressed_hist_high_pt_up.Write()
+        dressed_hist_high_pt_down.Write()
         return result
 
     def plot_MJ(self,region_str,blinded=False):
@@ -438,7 +457,7 @@ class analyzer:
                     self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
                 temp_1 = self.templates[temp_bin+60]
                 temp_2 = self.templates[temp_bin]
-                plotters.plot_template_compare(temp_1,temp_2,self.template_type,self.plot_path,self.canvas,self.lumi_label,self.mc_label,pt_min,pt_max,eta_min,eta_max,temp_bin)
+                plotters.plot_template_compare(temp_1,temp_2,self.template_type,self.plot_path,self.canvas,self.lumi_label,self.mc_label,pt_min,pt_max,eta_min,eta_max,temp_bin,self.out_file)
                 temp_bin+=1
 
     def verify_templates(self):
