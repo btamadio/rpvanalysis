@@ -632,3 +632,193 @@ def make_webpage(plot_path):
 
         f.write('</TABLE></HTML>')
         
+def plot_MJ_shifts(MJ_hists,low_pt,scale_factor,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
+
+    kin_sumw,kin_sumw2,dress_nom_matrix,dress_syst_matrix = MJ_hists
+
+    n_systs = 2
+    n_bins = len(MJ_bins)-1
+
+    kin_stat_err = np.sqrt( kin_sumw2 )
+    dress_nom_sumw = np.mean( dress_nom_matrix, axis=0)
+    dress_stat_err = np.std( dress_nom_matrix, axis = 0)
+    dress_syst_sumw = np.zeros( (n_systs,n_bins) )
+
+    if low_pt:
+        dress_syst_sumw[0] = np.mean( dress_syst_matrix[0], axis = 0)
+        dress_syst_sumw[1] = np.mean( dress_syst_matrix[1], axis = 0)
+
+    else:
+        dress_syst_sumw[0] = np.mean( dress_syst_matrix[2], axis = 0)
+        dress_syst_sumw[1] = np.mean( dress_syst_matrix[3], axis = 0)
+
+    rand_str = get_random_string()
+    canvas.cd()
+    p1 = ROOT.TPad('p1_'+rand_str,'p1_'+rand_str,0,0.3,1,1.0)
+    p1.SetBottomMargin(0.01)
+    p1.Draw()
+    p1.cd()
+    p1.SetLogy()
+
+    err_hist = ROOT.TH1F('err_hist','err_hist',n_bins,array.array('d',MJ_bins))
+    kin_hist = ROOT.TH1F('kin_hist','kin_hist',n_bins,array.array('d',MJ_bins))
+    dressed_hist = ROOT.TH1F('dressed_hist','dressed_hist',n_bins,array.array('d',MJ_bins))
+    dressed_hist_up = ROOT.TH1F('dressed_hist_up','dressed_hist_up',n_bins,array.array('d',MJ_bins))
+    dressed_hist_down = ROOT.TH1F('dressed_hist_down','dressed_hist_down',n_bins,array.array('d',MJ_bins))
+
+    for i in range(n_bins):
+        bin = i+1
+        if blinded and kin_hist.GetBinLowEdge(bin) >= MJ_cut:
+            kin_hist.SetBinContent(bin,0)
+            kin_hist.SetBinError(bin,0)
+        else:
+            kin_hist.SetBinContent(bin,kin_sumw[i])
+            kin_hist.SetBinError( bin, kin_stat_err[i] )
+        dressed_hist.SetBinContent(bin, dress_nom_sumw[i])
+        dressed_hist_up.SetBinContent(bin, dress_syst_sumw[0][i])
+        dressed_hist_down.SetBinContent(bin, dress_syst_sumw[1][i])
+        err_hist.SetBinContent(bin,dress_nom_sumw[i])
+        err_hist.SetBinError(bin,dress_stat_err[i])
+
+    print('plotting...')
+    hist_list = [err_hist,dressed_hist,dressed_hist_up,dressed_hist_down]
+    [hist.Scale(scale_factor) for hist in hist_list]
+
+    err_hist.SetMarkerSize(0.001)
+    err_hist.SetLineColor(ROOT.kRed)
+    err_hist.SetFillColor(ROOT.kRed)
+    err_hist.SetFillStyle(3002)
+
+    dressed_hist.SetLineColor(ROOT.kRed)
+    dressed_hist.SetLineWidth(2)
+    dressed_hist.SetFillStyle(3002)
+
+    kin_hist.SetLineColor(ROOT.kBlack)
+    kin_hist.SetLineWidth(2)
+    kin_hist.SetMarkerStyle(20)
+    kin_hist.SetBinErrorOption(1)
+
+    dressed_hist_up.SetLineColor(ROOT.kGreen)
+    dressed_hist_up.SetLineWidth(2)
+    dressed_hist_down.SetLineColor(ROOT.kBlue)
+    dressed_hist_down.SetLineWidth(2)            
+
+    err_hist.SetMinimum(0.5)
+    err_hist.SetMaximum( np.ceil(err_hist.GetMaximum()/10000 )*10000)
+
+    err_hist.Draw('e2')
+    dressed_hist.Draw('same')
+    kin_hist.Draw('same ep')
+    dressed_hist_up.Draw('hist same')
+    dressed_hist_down.Draw('hist same')
+
+    err_hist.GetYaxis().SetTitle('Events')
+    err_hist.GetYaxis().SetTitleSize(20)
+    err_hist.GetYaxis().SetTitleFont(43)
+    err_hist.GetYaxis().SetTitleOffset(1.55)
+    err_hist.GetYaxis().SetLabelFont(43)
+    err_hist.GetYaxis().SetLabelSize(15)    
+
+    ROOT.ATLASLabel(0.35,0.85,'Internal',0.05,0.115,1)
+    lat = ROOT.TLatex()
+    if mc_label:
+        lat.DrawLatexNDC(0.35,0.78,lumi_label+' fb^{-1} '+mc_label)
+        lat.DrawLatexNDC(0.6,0.82,'#splitline{n_{pred} = %.1f #pm %.1f #pm %.1f}{n_{obs} = %.1f #pm %.1f}' % (pred_yield,pred_stat,pred_syst,kin_yield,kin_uncert))
+    else:
+        lat.DrawLatexNDC(0.3,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
+    lat.DrawLatexNDC(0.24,0.28,get_region_label(region_str))
+
+    leg = ROOT.TLegend(0.6,0.55,0.8,0.75)
+    leg.AddEntry(kin_hist,'Kinematic','LP')
+    leg.AddEntry(err_hist,'Prediction #pm 1#sigma','LF')
+    if low_pt:
+        leg.AddEntry(dressed_hist_up,'low p_{T} +1#sigma','L')
+        leg.AddEntry(dressed_hist_down,'low p_{T} -1#sigma','L')
+    else:
+        leg.AddEntry(dressed_hist_up,'high p_{T} +1#sigma','L')
+        leg.AddEntry(dressed_hist_down,'high p_{T} -1#sigma','L')
+    leg.SetLineColor(0)
+    leg.SetTextSize(0.05)
+    leg.SetShadowColor(0)
+    leg.SetFillStyle(0)
+    leg.SetFillColor(0)
+    leg.Draw()
+    
+
+    canvas.cd()
+
+    # #ratio plot
+    p2 = ROOT.TPad('p2_'+rand_str,'p2_'+rand_str,0,0.05,1,0.3)
+    p2.SetTopMargin(0)
+    p2.SetBottomMargin(0.2)
+    p2.SetGridy()
+    p2.Draw()
+    p2.cd()
+
+    ratio_kin_hist = kin_hist.Clone()
+    ratio_dressed_hist = err_hist.Clone()
+    ratio_dressed_hist_up = dressed_hist_up.Clone()
+    ratio_dressed_hist_down = dressed_hist_down.Clone()
+
+    ratio_dressed_hist_up.Divide(dressed_hist)
+    ratio_dressed_hist_down.Divide(dressed_hist)
+    ratio_dressed_hist.Divide(dressed_hist)
+
+    for bin in range(1,ratio_kin_hist.GetNbinsX()+1):
+        if dressed_hist.GetBinContent(bin) > 0:
+            ratio_dressed_hist.SetBinError( bin, ratio_dressed_hist.GetBinError(bin) / ratio_dressed_hist.GetBinContent(bin))
+        else:
+            ratio_dressed_hist.SetBinError(bin,1)
+        if err_hist.GetBinContent(bin) > 0:
+            ratio_kin_hist.SetBinError(bin,ratio_kin_hist.GetBinError(bin) / err_hist.GetBinContent(bin))
+            ratio_kin_hist.SetBinContent(bin,ratio_kin_hist.GetBinContent(bin) / err_hist.GetBinContent(bin))
+        else:
+            ratio_kin_hist.SetBinContent(bin,0)
+            ratio_kin_hist.SetBinError(bin,1)
+    ratio_dressed_hist.Draw('e2')
+    ratio_kin_hist.Draw('e0 same')
+    ratio_dressed_hist_up.Draw('hist same')
+    ratio_dressed_hist_down.Draw('hist same')
+
+    ratio_dressed_hist.GetYaxis().SetTitle('Kin/Pred')
+    ratio_dressed_hist.SetMinimum(0.78)
+    ratio_dressed_hist.SetMaximum(1.22)
+    ratio_dressed_hist.GetYaxis().SetNdivisions(505)
+    ratio_dressed_hist.GetYaxis().SetTitleSize(18)
+    ratio_dressed_hist.GetYaxis().SetTitleFont(43)
+    ratio_dressed_hist.GetYaxis().SetTitleOffset(1.55)
+    ratio_dressed_hist.GetYaxis().SetLabelFont(43)
+    ratio_dressed_hist.GetYaxis().SetLabelSize(15)
+    ratio_dressed_hist.GetXaxis().SetTitleSize(18)
+    ratio_dressed_hist.GetXaxis().SetTitleFont(43)
+    ratio_dressed_hist.GetXaxis().SetTitleOffset(4)
+    ratio_dressed_hist.GetXaxis().SetLabelFont(43)
+    ratio_dressed_hist.GetXaxis().SetLabelSize(15)
+    ratio_dressed_hist.GetXaxis().SetTitle('M_{J}^{#Sigma} [TeV]')
+    ratio_dressed_hist.SetMinimum(0.0)
+    ratio_dressed_hist.SetMaximum(1.7)
+
+    return_list = [kin_hist,
+                   dressed_hist,
+                   err_hist,
+                   dressed_hist_up,
+                   dressed_hist_down,
+                   ratio_kin_hist,
+                   ratio_dressed_hist,
+                   ratio_dressed_hist_up,
+                   ratio_dressed_hist_down,
+                   lat,leg]
+
+    canvas.cd()
+    canvas.Update()
+    file_name = 'plot_MJ_shift_high_pt.png'
+    file_name_pdf = 'plot_MJ_shift_high_pt.pdf'
+    if low_pt:
+        file_name = 'plot_MJ_shift_low_pt.png'
+        file_name_pdf = 'plot_MJ_shift_low_pt.pdf'
+    full_path = plot_path.rstrip('/')+'/'+region_str+'/'
+    print('Saving plot to %s'%full_path+file_name)
+    canvas.Print(full_path+file_name)
+    canvas.Print(full_path+file_name_pdf)
+    os.system('chmod a+r ' + full_path+'*')
+    return return_list 

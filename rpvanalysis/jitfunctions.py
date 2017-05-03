@@ -36,17 +36,24 @@ def get_temp_bin(pt,eta,bmatch,pt_bins,eta_bins):
     return 60*bmatch+4*pt_bin+eta_bin
 
 @numba.jit(nopython=True)
-def apply_get_uncert_bin(col_pt,col_eta,eta_bins):
+def apply_get_uncert_bin(col_pt,col_eta):
     n=len(col_pt)
     assert n==len(col_eta)
     result = np.zeros(n,dtype=np.int32)
     for i in range(n):
         bin = -1
-        for j in range(0,len(eta_bins)-1):
-            if abs(col_eta[i]) >= eta_bins[j] and abs(col_eta[i]) < eta_bins[j+1]:
-                bin=j
-        if col_pt[i] > 0.4:
-            bin+=4
+        if col_pt[i] >= 0.2 and col_pt[i] < 0.402:
+            bin = 0
+        elif col_pt[i] >= 0.402 and col_pt[i] < 0.544:
+            bin = 1
+        elif col_pt[i] >= 0.544:
+            bin = 2
+        if abs(col_eta[i]) >= 0.5 and abs(col_eta[i]) < 1.0:
+            bin += 3
+        elif abs(col_eta[i]) >= 1.0 and abs(col_eta[i]) < 1.5:
+            bin += 6
+        elif abs(col_eta[i]) >= 1.5 and abs(col_eta[i]) < 2.0:
+            bin += 9
         result[i] = bin
     return result
 
@@ -95,10 +102,11 @@ def apply_shift_mass(mass_matrix,col_jet_uncert_bin,jet_uncert):
     n = len(col_jet_uncert_bin)
     n_toys = mass_matrix.shape[1]
     assert mass_matrix.shape[0] == n
-    result = np.copy(mass_matrix)
+    result = (np.copy(mass_matrix),np.copy(mass_matrix))
     for i in range(n):
         for j in range(n_toys):
-            result[i][j] *= (1 + jet_uncert[col_jet_uncert_bin[i]] )
+            result[0][i][j] *= (1 + jet_uncert[col_jet_uncert_bin[i]] )
+            result[1][i][j] *= (1 - jet_uncert[col_jet_uncert_bin[i]] )
     return result
 
 @numba.jit(nopython=True)
@@ -232,21 +240,35 @@ def apply_get_scale_factor(kin_MJ,dressed_MJ,weights,norm_low,norm_high):
     return n_toys*kin_sumw/dressed_sumw
 
 @numba.jit(nopython=True)
-def apply_get_shifted_MJ(dm_nom_list,dm_shift_list,jet_uncert_bins,n_systs):
-    #dm_nom_list = n_jet x n_events x n_toys
-    #dm_shift_list = n_jet x n_events x n_toys
-    #result = n_systs x n_events x n_toys
-    n_jet=dm_nom_list.shape[0]
-    n_events = dm_nom_list.shape[1]
-    n_toys = dm_nom_list.shape[2]
+def is_low_pt(jet_uncert_bin):
+    return jet_uncert_bin % 3 == 0
+
+@numba.jit(nopython=True)
+def apply_get_shifted_MJ(dressed_mass_nom,dressed_mass_up,dressed_mass_down,jet_uncert_bins):
+    #dressed_mass_nom.shape   =  n_jet x n_events x n_toys
+    #dressed_mass_shift.shape =  n_jet x n_events x n_toys
+    #result.shape             =  n_systs x n_events x n_toys
+    n_jets=dressed_mass_nom.shape[0]
+    n_events = dressed_mass_nom.shape[1]
+    n_toys = dressed_mass_nom.shape[2]
+    n_systs = 4
+    #order of shifts: 
+    #0: low pT shift down
+    #1: low pT shift up
+    #2: high pT shift up
+    #3: high pT shift down
     result = np.zeros( (n_systs,n_events,n_toys) )
-    for syst in range(n_systs):
-        for i in range(n_events):
-            for j in range(4):
-                if jet_uncert_bins[j][i] != -1:
-                    for toy in range(n_toys):
-                        if jet_uncert_bins[j][i] == syst:
-                            result[syst][i][toy] += dm_shift_list[j][i][toy]
-                        else:
-                            result[syst][i][toy] += dm_nom_list[j][i][toy]
+    for i in range(n_events):
+        for j in range(n_jets):
+            for toy in range(n_toys):
+                if is_low_pt(jet_uncert_bins[j][i]):
+                    result[0][i][toy] += dressed_mass_down[j][i][toy]
+                    result[1][i][toy] += dressed_mass_up[j][i][toy]
+                    result[2][i][toy] += dressed_mass_nom[j][i][toy]
+                    result[3][i][toy] += dressed_mass_nom[j][i][toy]
+                else:
+                    result[0][i][toy] += dressed_mass_nom[j][i][toy]
+                    result[1][i][toy] += dressed_mass_nom[j][i][toy]
+                    result[2][i][toy] += dressed_mass_up[j][i][toy]
+                    result[3][i][toy] += dressed_mass_down[j][i][toy]
     return result

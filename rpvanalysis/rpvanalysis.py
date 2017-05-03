@@ -150,8 +150,7 @@ class analyzer:
         print('Determining uncertainty bins for all jets')
         for i in range(1,5):
             result = jitfunctions.apply_get_uncert_bin(self.df['jet_pt_'+str(i)].values,
-                                                       self.df['jet_eta_'+str(i)].values,
-                                                       self.eta_bins)
+                                                       self.df['jet_eta_'+str(i)].values)
             self.df['jet_uncert_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_uncert_bin_'+str(i))
             
     def compute_temp_bins(self):
@@ -226,34 +225,37 @@ class analyzer:
             self.templates_array[key]=self.templates[key].probs
             self.templates_neff_array[key]=self.templates[key].n_eff
 
-    def get_uncert(self,region_str,bin_i):
-        response = self.get_response(region_str)
-        #Uncertainty of a response = RMS
-        dressed_mean = response[0]
-        kin_mean = response[1]
+    def get_rms_err( self, kin_mean, dressed_mean ):
         result = 0.0
         count = 0
         for i in range(dressed_mean.shape[0]):
-            if bin_i < 4 and self.pt_bins[i] < 0.4:
-                continue
-            if bin_i >= 4 and self.pt_bins[i] > 0.4:
-                continue
             if dressed_mean[i] > 1e-6 and kin_mean[i] > 1e-6:
                 result += np.square ( (kin_mean[i] - dressed_mean[i])/dressed_mean[i] )
                 count+=1
         result /= count
         result = np.sqrt(result)
         return result
-            
+
+    def get_max_err( self, kin_mean, dressed_mean ):
+        max_err = 0.0
+        for i in range(dressed_mean.shape[0]):
+            this_err = abs( kin_mean[i] - dressed_mean[i] ) / dressed_mean[i]
+            if this_err > max_err:
+                max_err = this_err
+        return max_err
+
     def compute_uncertainties(self):
         #Loop over UDRs and calculate uncertainties
-        self.UDRs = ['2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4',
-                     '2jLJG400e1','2jLJG400e2','2jLJG400e3','2jLJG400e4']
         self.jet_uncert = []
-        for i,region_str in enumerate(self.UDRs):
-            self.jet_uncert.append(self.get_uncert(region_str,i))
-            print (region_str,'uncertainty = ',self.jet_uncert[-1])
-
+        for eta_bin in ['e1','e2','e3','e4']:
+            udr_str = '2jLJG400'+eta_bin
+            kin_mean,dressed_mean,err = self.get_response(udr_str)
+            self.jet_uncert.append( self.get_rms_err( kin_mean[:7], dressed_mean[:7] ))
+            self.jet_uncert.append( self.get_max_err( kin_mean[7:10], dressed_mean[7:10] ))
+            self.jet_uncert.append( self.get_rms_err( kin_mean[10:], dressed_mean[10:] ))
+        for i,uncert in enumerate(self.jet_uncert):    
+            print (' uncert bin %i, value = %.2f ' % (i,uncert) )
+ 
     def compute_dressed_masses(self,n_toys):
         self.n_toys=n_toys
         print('Generating dressed masses')
@@ -273,12 +275,13 @@ class analyzer:
 
     def compute_shifted_masses(self):
         print('Generating shifted jet masses')
-        self.dressed_mass_shift = np.zeros( self.dressed_mass_nom.shape )
+        self.dressed_mass_up = np.zeros( self.dressed_mass_nom.shape )
+        self.dressed_mass_down = np.zeros( self.dressed_mass_nom.shape )
         for i in range(4):
             jet_i = i+1
             col_jet_pt = self.df['jet_pt_'+str(jet_i)].values
             col_jet_uncert_bin = self.df['jet_uncert_bin_'+str(jet_i)].values
-            self.dressed_mass_shift[i] = jitfunctions.apply_shift_mass(self.dressed_mass_nom[i],col_jet_uncert_bin,self.jet_uncert)
+            self.dressed_mass_up[i],self.dressed_mass_down[i] = jitfunctions.apply_shift_mass(self.dressed_mass_nom[i],col_jet_uncert_bin,self.jet_uncert)
 
     def get_response(self,region_str):
         #TODO: clean up this shitty code
@@ -321,15 +324,42 @@ class analyzer:
                     jet_dressed_m = np.append( jet_dressed_m, self.dressed_mass_nom[i][indices[i]],axis=0)
             return jitfunctions.apply_get_mass_response(jet_pt,jet_eta,jet_m,jet_weight,jet_dressed_m,self.pt_bins)
 
-    def plot_MJ(self,region_str,blinded=False):
-        rand_str = plotters.get_random_string()
-        can_name = 'can'
-        if self.canvas is None:
-            self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
+    def plot_MJ_shifts(self,region_str,blinded=False):
         full_path = self.plot_path + region_str
-        print('Creating directory %s'%full_path)
         if not os.path.exists(full_path):
+            print('Creating directory %s'%full_path)
             os.mkdir(full_path)
+
+        index = helpers.get_region_index(self.df,region_str,self.eta_bins)[0]        
+        kin_MJ = self.df.ix[index].MJ.values
+
+        dressed_MJ_nom = self.dressed_MJ_nom[index]
+        dressed_MJ_systs = np.array([ self.dressed_MJ_syst[i][index] for i in range(self.dressed_MJ_syst.shape[0]) ])
+        weights = self.df.ix[index].weight.values
+
+        MJ_hists = jitfunctions.apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_bins)
+        scale_factor = self.get_scale_factor(index)
+        result = [None,None]
+
+        if self.canvas is None:
+            can_name = 'can'+plotters.get_random_string()
+            self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
+
+        result[0] =  plotters.plot_MJ_shifts(MJ_hists,True,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
+        result[1] =  plotters.plot_MJ_shifts(MJ_hists,False,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
+        return result
+
+    def plot_MJ(self,region_str,blinded=False):
+        if self.canvas is None:
+            can_name = 'can'+plotters.get_random_string()
+            self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
+
+        full_path = self.plot_path + region_str
+
+        if not os.path.exists(full_path):
+            print('Creating directory %s'%full_path)
+            os.mkdir(full_path)
+
         index = helpers.get_region_index(self.df,region_str,self.eta_bins)[0]
         kin_MJ = self.df.ix[index].MJ.values
         dressed_MJ_systs = np.array([ self.dressed_MJ_syst[i][index] for i in range(len(self.UDRs)) ])
@@ -426,7 +456,7 @@ class analyzer:
         print('Computing systematically shifted MJ distributions')
         self.dressed_MJ_nom = self.dressed_mass_nom[0]+self.dressed_mass_nom[1]+self.dressed_mass_nom[2]+np.nan_to_num(self.dressed_mass_nom[3])
         jet_uncert_bins = np.array([self.df['jet_uncert_bin_'+str(i+1)].values for i in range(4)])
-        self.dressed_MJ_syst = jitfunctions.apply_get_shifted_MJ(self.dressed_mass_nom,self.dressed_mass_shift,jet_uncert_bins,len(self.UDRs))
+        self.dressed_MJ_syst = jitfunctions.apply_get_shifted_MJ(self.dressed_mass_nom,self.dressed_mass_up,self.dressed_mass_down,jet_uncert_bins)
 
     def get_scale_factor(self,index):
         kin_MJ = self.df.ix[index].MJ.values
