@@ -12,6 +12,7 @@
 "sig_mult": 0.0,
 "sig_dsid": 0,
 "template_type":0,
-"MJ_plots":["5jSRb1"],
+"MJ_plots":["4jVRb9","4jVRb1","4jSRb9","4jSRb1",
+            "5jVRb9","5jVRb1","5jSRb9","5jSRb1"],
 "blinded":true
 }

@@ -48,7 +48,7 @@ class analyzer:
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
-        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])
+        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=100000)
         if is_mc:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
@@ -340,11 +340,9 @@ class analyzer:
         MJ_hists = jitfunctions.apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_bins)
         scale_factor = self.get_scale_factor(index)
         result = [None,None]
-
         if self.canvas is None:
             can_name = 'can'+plotters.get_random_string()
             self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
-
         result[0] =  plotters.plot_MJ_shifts(MJ_hists,True,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
         result[1] =  plotters.plot_MJ_shifts(MJ_hists,False,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
         return result
@@ -362,11 +360,12 @@ class analyzer:
 
         index = helpers.get_region_index(self.df,region_str,self.eta_bins)[0]
         kin_MJ = self.df.ix[index].MJ.values
-        dressed_MJ_systs = np.array([ self.dressed_MJ_syst[i][index] for i in range(len(self.UDRs)) ])
+        dressed_MJ_nom = self.dressed_MJ_nom[index]
+        dressed_MJ_systs = np.array([ self.dressed_MJ_syst[i][index] for i in range(self.dressed_MJ_syst.shape[0]) ])
         weights = self.df.ix[index].weight.values
         MJ_hists = jitfunctions.apply_get_MJ_hists(kin_MJ,self.dressed_MJ_nom[index],dressed_MJ_systs,weights,self.MJ_bins)
         scale_factor = self.get_scale_factor(index)
-        sr_yields = jitfunctions.apply_get_SR_yields(kin_MJ,self.dressed_MJ_nom[index],dressed_MJ_systs,weights,self.MJ_cut)
+        sr_yields = jitfunctions.apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_cut)
         result =  plotters.plot_MJ(MJ_hists,scale_factor,sr_yields,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
 
         kin_hist = result[0]

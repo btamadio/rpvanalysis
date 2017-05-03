@@ -273,8 +273,8 @@ def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_labe
 
 def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
     kin_sumw,kin_sumw2,dress_nom_matrix,dress_syst_matrix = MJ_hists
+    kin_yield, kin_uncert, pred_yield, pred_stat, pred_syst_1, pred_syst_2 = sr_yields
 
-    kin_yield, kin_uncert, pred_yield, pred_stat, pred_syst = sr_yields
     n_systs = dress_syst_matrix.shape[0]
     n_bins = len(MJ_bins)-1
 
@@ -309,14 +309,26 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
             kin_hist.SetBinError( bin, kin_stat_err[i] )
         dressed_hist.SetBinContent(bin, dress_nom_sumw[i])
         err_hist.SetBinContent(bin,dress_nom_sumw[i])
+
         err_syst = 0.0
         err_stat = dress_stat_err[i]
+        
+        nom_val = dress_nom_sumw[i]
+        bin_err_up = 0.0
+        bin_err_down = 0.0
+        
         for j in range(n_systs):
-            bin_err = dress_syst_sumw[j][i] - dress_nom_sumw[i]
-            err_syst += abs(bin_err)
+            if dress_syst_sumw[j][i] - nom_val > 0:
+                bin_err_up += np.square( dress_syst_sumw[j][i] - nom_val )
+            else:
+                bin_err_down += np.square( dress_syst_sumw[j][i] - nom_val )
+        bin_err_up = np.sqrt(bin_err_up)
+        bin_err_down = np.sqrt(bin_err_down)
+        err_syst = max(bin_err_up,bin_err_down)
+
         tot_err = np.sqrt( err_stat*err_stat + err_syst*err_syst)
-        dressed_hist_up.SetBinContent(bin,dressed_hist.GetBinContent(bin) + err_syst)
-        dressed_hist_down.SetBinContent(bin,dressed_hist.GetBinContent(bin) - err_syst)
+        dressed_hist_up.SetBinContent(bin,dressed_hist.GetBinContent(bin) + bin_err_up)
+        dressed_hist_down.SetBinContent(bin,dressed_hist.GetBinContent(bin) - bin_err_down)
         err_hist.SetBinError(bin,tot_err)
     print('plotting...')
     hist_list = [err_hist,dressed_hist,dressed_hist_up,dressed_hist_down]
@@ -361,13 +373,13 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
     lat = ROOT.TLatex()
     if mc_label:
         lat.DrawLatexNDC(0.35,0.78,lumi_label+' fb^{-1} '+mc_label)
-        lat.DrawLatexNDC(0.6,0.82,'#splitline{n_{pred} = %.1f #pm %.1f #pm %.1f}{n_{obs} = %.1f #pm %.1f}' % (pred_yield,pred_stat,pred_syst,kin_yield,kin_uncert))
+        lat.DrawLatexNDC(0.6,0.82,'#splitline{n_{pred} = %.1f #pm %.1f #pm %.1f #pm %.1f}{n_{obs} = %.1f #pm %.1f}' % (pred_yield,pred_stat,pred_syst_1,pred_syst_2,kin_yield,kin_uncert))
     else:
         lat.DrawLatexNDC(0.3,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
         if blinded:
-            lat.DrawLatexNDC(0.6,0.82,'n_{pred} = %.1f #pm %.1f #pm %.1f' % (pred_yield,pred_stat,pred_syst))
+            lat.DrawLatexNDC(0.6,0.82,'n_{pred} = %.1f #pm %.1f #pm %.1f #pm %.1f' % (pred_yield,pred_stat,pred_syst_1,pred_syst_2))
         else:
-            lat.DrawLatexNDC(0.6,0.82,'#splitline{n_{pred} = %.1f #pm %.1f #pm %.1f}{n_{obs} = %i}' % (pred_yield,pred_stat,pred_syst,kin_yield))
+            lat.DrawLatexNDC(0.6,0.82,'#splitline{n_{pred} = %.1f #pm %.1f #pm %.1f #pm %.1f}{n_{obs} = %i}' % (pred_yield,pred_stat,pred_syst_1,pred_syst_2,kin_yield))
     lat.DrawLatexNDC(0.24,0.28,get_region_label(region_str))
 
     leg = ROOT.TLegend(0.6,0.55,0.8,0.75)
@@ -633,7 +645,6 @@ def make_webpage(plot_path):
         f.write('</TABLE></HTML>')
         
 def plot_MJ_shifts(MJ_hists,low_pt,scale_factor,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
-
     kin_sumw,kin_sumw2,dress_nom_matrix,dress_syst_matrix = MJ_hists
 
     n_systs = 2
@@ -723,28 +734,23 @@ def plot_MJ_shifts(MJ_hists,low_pt,scale_factor,plot_path,canvas,region_str,MJ_b
     lat = ROOT.TLatex()
     if mc_label:
         lat.DrawLatexNDC(0.35,0.78,lumi_label+' fb^{-1} '+mc_label)
-        lat.DrawLatexNDC(0.6,0.82,'#splitline{n_{pred} = %.1f #pm %.1f #pm %.1f}{n_{obs} = %.1f #pm %.1f}' % (pred_yield,pred_stat,pred_syst,kin_yield,kin_uncert))
     else:
         lat.DrawLatexNDC(0.3,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
     lat.DrawLatexNDC(0.24,0.28,get_region_label(region_str))
 
     leg = ROOT.TLegend(0.6,0.55,0.8,0.75)
     leg.AddEntry(kin_hist,'Kinematic','LP')
-    leg.AddEntry(err_hist,'Prediction #pm 1#sigma','LF')
-    if low_pt:
-        leg.AddEntry(dressed_hist_up,'low p_{T} +1#sigma','L')
-        leg.AddEntry(dressed_hist_down,'low p_{T} -1#sigma','L')
-    else:
-        leg.AddEntry(dressed_hist_up,'high p_{T} +1#sigma','L')
-        leg.AddEntry(dressed_hist_down,'high p_{T} -1#sigma','L')
+    leg.AddEntry(err_hist,'Prediction #pm 1#sigma_{stat}','LF')
+
+    leg.AddEntry(dressed_hist_up,'+1#sigma_{syst}','L')
+    leg.AddEntry(dressed_hist_down,'-1#sigma_{syst}','L')
+
     leg.SetLineColor(0)
     leg.SetTextSize(0.05)
     leg.SetShadowColor(0)
     leg.SetFillStyle(0)
     leg.SetFillColor(0)
     leg.Draw()
-    
-
     canvas.cd()
 
     # #ratio plot

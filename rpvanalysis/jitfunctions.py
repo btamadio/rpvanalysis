@@ -212,16 +212,27 @@ def apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,MJ_cut):
         pred_stat += (pred_yield - pred_sumw[j])*(pred_yield - pred_sumw[j])
     pred_stat /= (n_toys - 1)
     pred_stat = np.sqrt(pred_stat)
-    pred_syst = 0.0
+
 
     #Calculate mean systematically shifted prediction
     for k in range(n_systs):
         for j in range(n_toys):
             pred_yield_syst[k] += pred_sumw_systs[k][j]
         pred_yield_syst[k] /= n_toys
-        pred_syst += abs(pred_yield_syst[k] - pred_yield)
+        #pred_syst += abs(pred_yield_syst[k] - pred_yield)
     kin_uncert = np.sqrt( kin_sumw2 )
-    return( kin_sumw, kin_uncert, pred_yield, pred_stat, pred_syst )
+
+    pred_syst_1 = 0.0
+    pred_syst_2 = 0.0
+
+    if n_systs == 2:
+        pred_syst_1 = max(abs(pred_yield_syst[0] - pred_yield),abs(pred_yield_syst[1]-pred_yield))
+
+    elif n_systs == 4:
+        pred_syst_1 = max( abs(pred_yield_syst[0] - pred_yield) , abs(pred_yield_syst[1] - pred_yield ))
+        pred_syst_2 = max( abs(pred_yield_syst[2] - pred_yield) , abs(pred_yield_syst[3] - pred_yield ))
+
+    return( kin_sumw, kin_uncert, pred_yield, pred_stat, pred_syst_1, pred_syst_2 )
 
 @numba.jit(nopython=True)
 def apply_get_scale_factor(kin_MJ,dressed_MJ,weights,norm_low,norm_high):
@@ -262,8 +273,8 @@ def apply_get_shifted_MJ(dressed_mass_nom,dressed_mass_up,dressed_mass_down,jet_
         for j in range(n_jets):
             for toy in range(n_toys):
                 if is_low_pt(jet_uncert_bins[j][i]):
-                    result[0][i][toy] += dressed_mass_down[j][i][toy]
-                    result[1][i][toy] += dressed_mass_up[j][i][toy]
+                    result[0][i][toy] += dressed_mass_up[j][i][toy]
+                    result[1][i][toy] += dressed_mass_down[j][i][toy]
                     result[2][i][toy] += dressed_mass_nom[j][i][toy]
                     result[3][i][toy] += dressed_mass_nom[j][i][toy]
                 else:
