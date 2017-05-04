@@ -50,7 +50,7 @@ class analyzer:
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
-        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=100000)
+        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])
         if is_mc:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
@@ -93,6 +93,7 @@ class analyzer:
         sig_to_inj = self.sig_df[self.sig_df['mcChannelNumber']==dsid]
         sig_to_inj['weight'] *= mult
         self.df=self.bkg_df.append( sig_to_inj )
+        self.df.index = np.arange(len(self.df))
         print(' injecting %i raw signal events' % len(self.sig_df[self.sig_df['mcChannelNumber']==dsid]) )
         print(' cross-section scaled by a factor of %f'%mult)
 
@@ -420,7 +421,9 @@ class analyzer:
         scale_factor = self.get_scale_factor(index)
         self.write_scale_factor( region_str, scale_factor)
         sr_yields = jitfunctions.apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_cut)
-        result =  plotters.plot_MJ(MJ_hists,scale_factor,sr_yields,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
+        self.write_sr_yields(region_str,sr_yields,blinded)
+        print(sr_yields)
+        result =  plotters.plot_MJ(MJ_hists,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
 
         kin_hist = result[0]
         dressed_hist = result[1]
@@ -577,3 +580,18 @@ class analyzer:
             for row in reader:
                 self.scale_factor_dict[row[0]] = float(row[1])
         print(self.scale_factor_dict)
+
+    def write_sr_yields(self,region_str,sr_yields,blinded):
+        kin_yield, kin_uncert, pred_yield, pred_stat, pred_syst_1, pred_syst_2 = sr_yields
+        file_name = self.hist_path + 'sr_yields.csv'
+        if not hasattr(self,'sr_yields_csv'):
+            self.sr_yields_csv = file_name
+            with open(self.sr_yields_csv,'w') as f:
+                writer = csv.writer(f,delimiter = ' ')
+                writer.writerow(['MJ_cut','region','n_pred','sigma_stat','sigma_syst_1','sigma_syst_2','n_obs','sigma_n_obs'])
+        with open(self.sr_yields_csv,'a') as f:
+            writer = csv.writer(f,delimiter = ' ')
+            if blinded:
+                writer.writerow([self.MJ_cut,region_str,pred_yield,pred_stat,pred_syst_2,pred_syst_1,'NaN','NaN'])
+            else:
+                writer.writerow([self.MJ_cut,region_str,pred_yield,pred_stat,pred_syst_2,pred_syst_1,kin_yield,kin_uncert])

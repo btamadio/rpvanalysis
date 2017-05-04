@@ -275,9 +275,9 @@ def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_labe
     h2.Write()
     return(h1,h2)
 
-def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
+def plot_MJ(MJ_hists,scale_factor,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
     kin_sumw,kin_sumw2,dress_nom_matrix,dress_syst_matrix = MJ_hists
-    kin_yield, kin_uncert, pred_yield, pred_stat, pred_syst_1, pred_syst_2 = sr_yields
+
 
     n_systs = dress_syst_matrix.shape[0]
     n_bins = len(MJ_bins)-1
