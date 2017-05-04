@@ -30,8 +30,10 @@ if config['inject_sig']:
 if not 'template_type' in config:
     config['template_type'] = 0
 
-a.template_type = config['template_type']
+if 'MJ_cut' in config:
+    a.MJ_cut = config['MJ_cut']
 
+a.template_type = config['template_type']
 a.compute_temp_bins()
 
 if 'templates_file' in config:

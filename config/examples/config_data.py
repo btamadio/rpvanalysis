@@ -8,6 +8,7 @@
 "mc_label": "",
 "n_toys": 100,
 "inject_sig": false,
+"MJ_cut":0.8,
 "MJ_plots":["4jVRb9","4jVRb1","4jSRb9","4jSRb1",
             "5jVRb9","5jVRb1","5jSRb9","5jSRb1",
             "4jSRb1LJG400","4jSRb9LJG400"],

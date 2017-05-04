@@ -15,7 +15,6 @@ a = rpvanalysis.analyzer()
 
 a.date=config['date']
 a.job_name=config['job_name']
-a.web_path = config['web_path']
 a.hist_path = config['hist_path']
 a.make_plot_dir()
 a.read_sig_from_csv(config['sig_file'])

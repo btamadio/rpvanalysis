@@ -20,49 +20,136 @@ pip install -e .
 
 ### Configuration files
 
-Configuration files are located in config/
+Example Configuration files are located in config/examples
 
-Look at the most recent date for the most up-to-date syntax. Config files from older dates may be obsolete.
+Config files are in json format (double quotes for strings) and have some required entries, depending on which version of the analysis you want to run.
 
-Config files are in json format (double quotes for strings) and have some required settings:
+#### baseline analysis with data
+
+Example config file: `config_data.py`
+
+Required entries:
 
 `date`: Specify date of running the job with format `MM_DD`. This will end up in the name of the output directory
 
 `job_name`: Appended to date to make the output directory name
 
-`bkg_file`: Specify csv file of either data or background MC
+`bkg_file`: csv file containing entire dataset you want to run on
 
 `web_path`: Directory for the output plots
 
-`hist_path`: Directory for the ROOT files containing output histograms
+`hist_path`: Directory for the ROOT and csv output files
 
-`is_mc`: set to true if the input for background is MC. 
+`is_mc`: false
 
-`mc_label`: Name of MC generator for labelling plots
+`mc_label`: leave as empty quotes
 
 `n_toys`: Number of dressed masses to generate per-jet for the background prediction
 
-`inject_sig`: To inject signal MC into either data or background MC, set this to true and specify and input file for signal
-
-`sig_files`: List of signal files to input
-
-`sig_mult`: Scales the signal cross-section by this value. If set to 1, the signal MC will be scaled to the nominal cross-s
-ection times 36.45/fb.
-
-`sig_dsid`: DSID of signal to include. In case the input signal file contains multiple DSIDs.
-
-`template_type`: 0 = baseline b-match / non-b-match template binning
+`inject_sig`: false
 
 `MJ_plots`: List of regions for which to produce MJ plots
 
-`blinded`: If set to true, MJ plots for SRs will be blinded above 800 GeV
+`MJ_cut` : Value of MJ cut that defines signal region (TeV)
 
-### Running the baseline analysis
+`blinded`: Whether or not to blind the observation above MJ_cut in SRs
 
-After setting the web_path and hist_path in your config file, run:
+#### baseline analysis with MC
+
+Example config file: `config_MC.py`
+
+Required entries:
+
+`date`: Specify date of running the job with format `MM_DD`. This will end up in the name of the output directory
+
+`job_name`: Appended to date to make the output directory name
+
+`bkg_file`: csv file containing entire dataset you want to run on
+
+`web_path`: Directory for the output plots
+
+`hist_path`: Directory for the ROOT and csv output files
+
+`is_mc`: true
+
+`mc_label`: Text to appear on plots, e.g. "Pythia" or "Herwig++"
+
+`n_toys`: Number of dressed masses to generate per-jet for the background prediction
+
+`inject_sig`: false
+
+`MJ_plots`: List of regions for which to produce MJ plots
+
+`MJ_cut` : Value of MJ cut that defines signal region (TeV)
+
+#### baseline analysis with signal MC injected into data
+
+Example config file: `config_signal_injection.py`
+
+Required entries:
+
+`date`: Specify date of running the job with format `MM_DD`. This will end up in the name of the output directory
+
+`job_name`: Appended to date to make the output directory name
+
+`bkg_file`: csv file containing entire dataset you want to run on
+
+`web_path`: Directory for the output plots
+
+`hist_path`: Directory for the ROOT and csv output files
+
+`is_mc`: false
+
+`mc_label`: ""
+
+`n_toys`: Number of dressed masses to generate per-jet for the background prediction
+
+`inject_sig`: true
+
+`sig_file`: location of signal MC csv file
+
+`sig_mult`: scale factor by which to multiply signal cross-section. Generally this should be set to 1.0
+
+`sig_dsid`: DSID of signal point to inject into data
+
+`MJ_plots`: List of regions for which to produce MJ plots
+
+`MJ_cut` : Value of MJ cut that defines signal region (TeV)
+
+`blinded`: true to blind SRs above MJ_cut
+
+#### Generate predictions and observed yields from signal MC *only*
+
+Example config file: `config_signal_only.py`
+
+Required entries:
+
+`date`: Specify date of running the job with format `MM_DD`. This will end up in the name of the output directory
+
+`job_name`: Appended to date to make the output directory name
+
+`sig_file`: location of signal MC csv file
+
+`hist_path`: Directory for the csv output files
+
+`n_toys`: Number of dressed masses to generate per-jet for the background prediction
+
+`templates_file`: location of ROOT file containing templates, i.e. the histograms.root file that comes from the baseline analysis
+
+`scale_factor_file`: location of .csv file containing the scale factors, i.e. scale_factors.csv from baseline analysis
+
+### How to run
+
+#### baseline analysis or signal-injected analysis:
 
 ```
 bin/run-2jet-analysis <config_file>
+```
+
+#### make predictions from signal MC only
+
+```
+bin/run-signal-predictions <config_file>
 ```
 
 ### Making input .csv files
@@ -103,6 +190,33 @@ The input root file must contain a TTree at the top level called "miniTree" with
 
 `jet_bmatched_Fix70`
 
+### Outputs
+
+#### Baseline analysis
+
+`histograms.root` : templates and MJ histograms
+
+`sr_yields` : predicted and observed (if unblinded) SR yields with uncertainties
+
+`scale_factors.csv` : scale factors for normalizing prediction by region
+
+`uncertainties.csv` : data-driven uncertainty in the following order: 
+[ (pt_bin_1,eta_bin_1),
+(pt_bin_2,eta_bin_1),
+(pt_bin_3,eta_bin_1),
+(pt_bin_1,eta_bin_2),
+(pt_bin_2,eta_bin_2),
+(pt_bin_3,eta_bin_2),
+(pt_bin_1,eta_bin_3),
+(pt_bin_2,eta_bin_3),
+(pt_bin_3,eta_bin_3),
+(pt_bin_1,eta_bin_4),
+(pt_bin_2,eta_bin_4),
+(pt_bin_3,eta_bin_4)]
+
+#### signal-only-predictions
+
+`signal_predictions.csv` : columns are : MJ_cut, region, DSID, n_predicted, n_observed
 
 ## Author
 

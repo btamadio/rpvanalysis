@@ -35,16 +35,17 @@ class analyzer:
 
     def make_plot_dir(self):
         #Create directory for saving plots
-        self.plot_path = self.web_path.rstrip('/') + '/'+self.date + '_' + self.job_name + '/'
-        self.hist_path += '/'+self.date+'_'+self.job_name+'/'
-        print('Creating output directory: %s ' % self.plot_path )
-        if not os.path.exists(self.plot_path):
-            os.mkdir(self.plot_path)
+        if self.web_path:
+            self.plot_path = self.web_path.rstrip('/') + '/'+self.date + '_' + self.job_name + '/'
+            print('Creating output directory: %s ' % self.plot_path )
+            if not os.path.exists(self.plot_path):
+                os.mkdir(self.plot_path)
+            os.system('chmod a+rx %s'%self.plot_path)
 
+        self.hist_path += '/'+self.date+'_'+self.job_name+'/'
         print('Creating output directory: %s'%self.hist_path)
         if not os.path.exists(self.hist_path):
             os.mkdir(self.hist_path)
-        os.system('chmod a+rx %s'%self.plot_path)
         os.system('chmod a+rx %s'%self.hist_path)
         self.out_file = ROOT.TFile.Open(self.hist_path+'histograms.root','RECREATE')
 
