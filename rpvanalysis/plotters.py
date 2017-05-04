@@ -377,13 +377,8 @@ def plot_MJ(MJ_hists,scale_factor,sr_yields,plot_path,canvas,region_str,MJ_bins,
     lat = ROOT.TLatex()
     if mc_label:
         lat.DrawLatexNDC(0.35,0.78,lumi_label+' fb^{-1} '+mc_label)
-        lat.DrawLatexNDC(0.6,0.82,'#splitline{n_{pred} = %.1f #pm %.1f #pm %.1f #pm %.1f}{n_{obs} = %.1f #pm %.1f}' % (pred_yield,pred_stat,pred_syst_1,pred_syst_2,kin_yield,kin_uncert))
     else:
         lat.DrawLatexNDC(0.3,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
-        if blinded:
-            lat.DrawLatexNDC(0.6,0.82,'n_{pred} = %.1f #pm %.1f #pm %.1f #pm %.1f' % (pred_yield,pred_stat,pred_syst_1,pred_syst_2))
-        else:
-            lat.DrawLatexNDC(0.6,0.82,'#splitline{n_{pred} = %.1f #pm %.1f #pm %.1f #pm %.1f}{n_{obs} = %i}' % (pred_yield,pred_stat,pred_syst_1,pred_syst_2,kin_yield))
     lat.DrawLatexNDC(0.24,0.28,get_region_label(region_str))
 
     leg = ROOT.TLegend(0.6,0.55,0.8,0.75)

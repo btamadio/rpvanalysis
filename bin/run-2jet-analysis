@@ -52,7 +52,7 @@ if 'uncertainties' in config:
         a.jet_uncert = config['uncertainties']
 else:
     a.compute_uncertainties()
-
+    a.write_uncertainties()
 a.drop_2jet_events()
 a.compute_dressed_masses(config['n_toys'])
 

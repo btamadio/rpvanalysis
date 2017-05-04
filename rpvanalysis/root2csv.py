@@ -37,13 +37,13 @@ class root2csv:
                             row.append(value)
                         for _ in range(4-len(vec)):
                             row.append(-999)
-                    elif feature is not 'MJ':
+                    else:#if feature is not 'MJ':
                         value = getattr(self.tree,feature)
                         row.append(value)
-                    else:
-                        value = 0.0
-                        for i in range( min(4,self.tree.njet) ):
-                            value += self.tree.jet_m.at(i)
-                        row.append(value)
+                    # else:
+                    #     value = 0.0
+                    #     for i in range( min(4,self.tree.njet) ):
+                    #         value += self.tree.jet_m.at(i)
+                    #     row.append(value)
                 writer.writerow(row)
         

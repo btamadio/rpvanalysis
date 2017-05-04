@@ -7,6 +7,7 @@ import plotters
 import helpers
 import os
 import ROOT
+import csv
 
 class analyzer:
     def __init__(self):
@@ -49,7 +50,7 @@ class analyzer:
 
     def read_bkg_from_csv(self,file_name,is_mc=True):
         print('reading from file % s'%file_name)
-        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])
+        self.bkg_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])#,nrows=100000)
         if is_mc:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
@@ -417,6 +418,7 @@ class analyzer:
         weights = self.df.ix[index].weight.values
         MJ_hists = jitfunctions.apply_get_MJ_hists(kin_MJ,self.dressed_MJ_nom[index],dressed_MJ_systs,weights,self.MJ_bins)
         scale_factor = self.get_scale_factor(index)
+        self.write_scale_factor( region_str, scale_factor)
         sr_yields = jitfunctions.apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_cut)
         result =  plotters.plot_MJ(MJ_hists,scale_factor,sr_yields,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
 
@@ -530,6 +532,48 @@ class analyzer:
         kin_MJ = this_df.ix[index].MJ.values
         dressed_MJ = self.dressed_MJ_df.ix[index].as_matrix()
         weights = this_df.ix[index].weight.values
-        scale_factor = 1
+        scale_factor = self.scale_factor_dict[region_str]
         n_pred,n_obs = jitfunctions.apply_get_signal_pred(kin_MJ,dressed_MJ,weights,scale_factor,self.MJ_cut)
-        print(region_str,dsid,n_pred,n_obs)
+        self.write_signal_pred(self.MJ_cut,region_str,dsid,n_pred,n_obs)
+        print(self.MJ_cut,region_str,dsid,n_pred,n_obs)
+
+    def write_uncertainties(self):
+        file_name = self.hist_path+'uncertainties.csv'
+        if not hasattr(self,'uncert_csv'):
+            append_write = 'w'
+            self.uncert_csv = file_name
+        else:
+            append_write = 'a'
+        with open(self.uncert_csv,append_write) as f:
+            writer = csv.writer(f)
+            writer.writerow(self.jet_uncert)
+    
+    def write_signal_pred(self,mj_cut,region_str,dsid,n_pred,n_obs):
+        file_name = self.hist_path+'signal_predictions.csv'
+        if not hasattr(self,'sig_pred_csv'):
+            append_write = 'w'
+            self.sig_pred_csv = file_name
+        else:
+            append_write = 'a'
+        with open(self.sig_pred_csv,append_write) as f:
+            writer = csv.writer(f,delimiter=' ')
+            writer.writerow([mj_cut,region_str,dsid,n_pred,n_obs])
+
+    def write_scale_factor(self,region_str,scale_factor):
+        file_name = self.hist_path+'scale_factors.csv'
+        if not hasattr(self,'sf_csv'):
+            append_write = 'w'
+            self.sf_csv = file_name
+        else:
+            append_write = 'a'
+        with open(self.sf_csv,append_write) as f:
+            writer = csv.writer(f,delimiter = ' ')
+            writer.writerow([region_str,scale_factor])
+
+    def read_scale_factors(self,file_name):
+        self.scale_factor_dict = {}
+        with open( file_name, 'r' ) as f:
+            reader = csv.reader(f,delimiter = ' ')
+            for row in reader:
+                self.scale_factor_dict[row[0]] = float(row[1])
+        print(self.scale_factor_dict)

@@ -37,7 +37,10 @@ else:
 
 a.compute_dressed_MJ_nom()
 a.make_dressed_MJ_df()
-
+a.read_scale_factors(config['scale_factor_file'])
 dsid_list = sorted(a.sig_df.mcChannelNumber.unique())
-for dsid in dsid_list:
-    a.get_signal_pred('5jSRb1',dsid)
+for mj_cut in [0.6,0.65,0.7,0.75,0.8,0.85,0.9]:
+    a.MJ_cut = mj_cut
+    for region_str in ['5jSRb1','5jSRb9','4jSRb1','4jSRb9','4jSRb1LJG400','4jSRb9LJG400']:
+        for dsid in dsid_list:
+            a.get_signal_pred(region_str,dsid)
