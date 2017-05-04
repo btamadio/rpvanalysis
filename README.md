@@ -13,7 +13,7 @@ conda create --name rpv_susy numpy
 source activate rpv_susy
 
 pip install -e .
-``
+```
 Each time you relog, you'll have to re-run these two lines:
 
 ```
