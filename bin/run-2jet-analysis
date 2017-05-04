@@ -24,7 +24,7 @@ a.make_plot_dir()
 a.read_bkg_from_csv(config['bkg_file'],is_mc=config['is_mc'])
 
 if config['inject_sig']:
-    a.read_sig_from_root(config['sig_file'])
+    a.read_sig_from_csv(config['sig_file'])
     a.inject_sig(config['sig_dsid'],config['sig_mult'])
 
 if not 'template_type' in config:
@@ -33,7 +33,12 @@ if not 'template_type' in config:
 a.template_type = config['template_type']
 
 a.compute_temp_bins()
-a.create_templates()
+
+if 'templates_file' in config:
+    a.read_templates(config['templates_file'])
+else:
+    a.create_templates()
+
 a.verify_templates()
 a.compute_dressed_masses(10)
 
@@ -65,7 +70,8 @@ a.drop_3jet_events()
 if 'MJ_plots' in config:
    a.compute_uncert_bins()
    a.compute_shifted_masses()
-   a.compute_dressed_MJ()
+   a.compute_dressed_MJ_nom()
+   a.compute_dressed_MJ_syst()
    print(' creating MJ plots')
    for region_str in config['MJ_plots']:
        print(region_str)

@@ -11,11 +11,11 @@ class root2csv:
         print('output file: %s'%out_file_name)
         print('Number of entries: %i'%self.n_entries)
     def loop(self):
-        feature_list = ['eventNumber','njet','njet_soft','nbjet_Fix70','MJ','dEta','weight',
+        feature_list = ['mcChannelNumber','eventNumber','njet','njet_soft','nbjet_Fix70','MJ','dEta','weight',
                         'jet_pt','jet_eta','jet_phi','jet_m','jet_bmatched_Fix70']
         with open(self.out_file,'wb') as csvfile:
             writer = csv.writer(csvfile,delimiter=' ')
-            header = ['event_number','njet','njet_soft','nbjet','MJ','dEta','weight']
+            header = ['mcChannelNumber','event_number','njet','njet_soft','nbjet','MJ','dEta','weight']
             header += ['jet_pt_'+str(i) for i in range(1,5)]
             header += ['jet_eta_'+str(i) for i in range(1,5)]
             header += ['jet_phi_'+str(i) for i in range(1,5)]
@@ -42,7 +42,7 @@ class root2csv:
                         row.append(value)
                     else:
                         value = 0.0
-                        for i in range(self.tree.njet):
+                        for i in range( min(4,self.tree.njet) ):
                             value += self.tree.jet_m.at(i)
                         row.append(value)
                 writer.writerow(row)

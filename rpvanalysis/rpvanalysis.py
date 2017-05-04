@@ -17,6 +17,7 @@ class analyzer:
         self.date = ''
         self.job_name = ''
         self.canvas = None
+        self.bkg_df = None
         self.dressed_mass_nom = None
         self.mc_label = ''
         self.lumi_label = '36.5'
@@ -60,13 +61,29 @@ class analyzer:
             self.bkg_df['weight'] *= self.mc_lumi
         self.df = self.bkg_df
 
+    def read_sig_from_csv(self,file_name):
+        print('reading from file %s'%file_name)
+        self.sig_df = pd.read_csv(file_name,delimiter=' ',na_values=[-999])
+        self.sig_df['weight'] *= self.mc_lumi
+        if self.bkg_df is not None:
+            start_ind = self.bkg_df.index.max()+1
+            len_ind = len(self.sig_df)
+            self.sig_df.index = np.arange(start_ind,start_ind+len_ind)
+        else:
+            self.sig_df.index = np.arange( len(self.sig_df) )
+            self.df = self.sig_df
+
     def read_sig_from_root(self,file_name):
         self.sig_df = self.root_to_df(file_name)
         self.sig_df['weight'] *= self.mc_lumi
-        start_ind = self.bkg_df.index.max()+1
-        len_ind = len(self.sig_df)
-        self.sig_df.index = np.arange(start_ind,start_ind+len_ind)
-        
+        if self.bkg_df is not None:
+            start_ind = self.bkg_df.index.max()+1
+            len_ind = len(self.sig_df)
+            self.sig_df.index = np.arange(start_ind,start_ind+len_ind)
+        else:
+            self.sig_df.index = np.arange( len(self.sig_df) )
+            self.df = self.sig_df
+
     def inject_sig(self,dsid,mult=1):
         #Select signal events by DSID and scale by mult
         if self.sig_df is None:
@@ -192,7 +209,23 @@ class analyzer:
                                                          np.repeat(int(i<=2),len(self.df)),
                                                          self.pt_bins,
                                                          self.eta_bins)
-                self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))            
+                self.df['jet_temp_bin_'+str(i)]=pd.Series(result,index=self.df.index,name='jet_temp_bin_'+str(i))
+
+    def read_templates(self,templates_file):
+        print('Reading templates from file %s'%templates_file)
+        f = ROOT.TFile.Open(templates_file)
+        hist_dict = {}
+
+        for key in f.GetListOfKeys():
+            if key.GetName().startswith('temp_'):
+                bin = int(key.GetName().split('_')[1])
+                hist_dict[bin] = f.Get(key.GetName())
+        self.templates_array = np.zeros( (len(hist_dict), 50) )
+        
+        for key in sorted( hist_dict.keys() ):
+            self.templates[key] = helpers.template()
+            self.templates[key].set_from_hist( hist_dict[key] )
+            self.templates_array[key]=self.templates[key].probs
 
     def create_templates(self):
         print('Creating templates from control region')
@@ -221,7 +254,8 @@ class analyzer:
             if key == -1:
                 continue
             key = np.asscalar(key)
-            self.templates[key] = helpers.template(self.n_template_bins,df_temps,key,self.template_min,self.template_max)
+            self.templates[key] = helpers.template()
+            self.templates[key].set_from_df(self.n_template_bins,df_temps,key,self.template_min,self.template_max)
             self.templates_array[key]=self.templates[key].probs
             self.templates_neff_array[key]=self.templates[key].n_eff
 
@@ -267,7 +301,6 @@ class analyzer:
             result = jitfunctions.apply_get_dressed_mass(col_jet_pt,
                                                          col_jet_temp_bin,
                                                          self.templates_array,
-                                                         self.templates_neff_array,
                                                          self.templates[0].bin_centers,
                                                          self.templates[0].bin_edges,
                                                          n_toys)
@@ -470,9 +503,16 @@ class analyzer:
             if abs(t.sum() -1) > 1e-6:
                 print(' template number %i, probabilities sum to %f'%abs(t.sum()-1))
     
-    def compute_dressed_MJ(self):
-        print('Computing systematically shifted MJ distributions')
+    def compute_dressed_MJ_nom(self):
+        print('Computing nominal MJ')
         self.dressed_MJ_nom = self.dressed_mass_nom[0]+self.dressed_mass_nom[1]+self.dressed_mass_nom[2]+np.nan_to_num(self.dressed_mass_nom[3])
+
+    def make_dressed_MJ_df(self):
+        self.dressed_MJ_df = pd.DataFrame( self.dressed_MJ_nom )
+        self.dressed_MJ_df.index = self.df.index
+
+    def compute_dressed_MJ_syst(self):
+        print('Computing systematically shifted MJ')
         jet_uncert_bins = np.array([self.df['jet_uncert_bin_'+str(i+1)].values for i in range(4)])
         self.dressed_MJ_syst = jitfunctions.apply_get_shifted_MJ(self.dressed_mass_nom,self.dressed_mass_up,self.dressed_mass_down,jet_uncert_bins)
 
@@ -483,3 +523,13 @@ class analyzer:
 
     def make_webpage(self):
         plotters.make_webpage(self.plot_path)
+
+    def get_signal_pred(self,region_str,dsid):
+        this_df = self.df[self.df.mcChannelNumber==dsid]
+        index = helpers.get_region_index( this_df, region_str, self.eta_bins)[0]
+        kin_MJ = this_df.ix[index].MJ.values
+        dressed_MJ = self.dressed_MJ_df.ix[index].as_matrix()
+        weights = this_df.ix[index].weight.values
+        scale_factor = 1
+        n_pred,n_obs = jitfunctions.apply_get_signal_pred(kin_MJ,dressed_MJ,weights,scale_factor,self.MJ_cut)
+        print(region_str,dsid,n_pred,n_obs)

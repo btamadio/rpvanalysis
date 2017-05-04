@@ -165,8 +165,9 @@ def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_labe
         h2.SetBinContent(bin,temp_2.sumw[i])
         h1.SetBinError(bin,np.sqrt(temp_1.sumw2[i]))
         h2.SetBinError(bin,np.sqrt(temp_2.sumw2[i]))
-    h1.Scale(1./h1.Integral())
-    h2.Scale(1./h2.Integral())
+    if abs(h1.Integral()-1) > 1e-9:
+        h1.Scale(1./h1.Integral())
+        h2.Scale(1./h2.Integral())
     canvas.cd()
     rand_str = get_random_string()
     p1 = ROOT.TPad('p1_'+rand_str,'p1_'+rand_str,0,0.3,1,1.0)

@@ -77,7 +77,7 @@ def sample_from_cdf(sample,probs,bin_centers,bin_edges):
     return np.random.uniform(bin_edges[i],bin_edges[i+1])
 
 @numba.jit(nopython=True)
-def apply_get_dressed_mass(col_pt,col_temp_bin,templates_array,templates_neff_array,bin_centers,bin_edges,n_toys):
+def apply_get_dressed_mass(col_pt,col_temp_bin,templates_array,bin_centers,bin_edges,n_toys):
     n = len(col_pt)    
     n_bins = len(templates_array[0])
     assert n == len(col_temp_bin)
@@ -283,3 +283,21 @@ def apply_get_shifted_MJ(dressed_mass_nom,dressed_mass_up,dressed_mass_down,jet_
                     result[2][i][toy] += dressed_mass_up[j][i][toy]
                     result[3][i][toy] += dressed_mass_down[j][i][toy]
     return result
+
+@numba.jit(nopython=True)
+def apply_get_signal_pred(kin_MJ, dressed_MJ, weights, scale_factor, MJ_cut):
+    n_events,n_toys = dressed_MJ.shape
+    assert kin_MJ.shape[0] == weights.shape[0] == n_events
+    n_pred = 0.0
+    n_obs = 0.0
+    for i in range(n_events):
+        if kin_MJ[i] > MJ_cut:
+            n_obs += weights[i]
+    n_pred_vec = np.zeros( n_toys )
+    for j in range(n_toys):
+        for i in range(n_events):
+            if dressed_MJ[i][j] > MJ_cut:
+                n_pred_vec[j] += scale_factor * weights[i]
+        n_pred += n_pred_vec[j]
+    n_pred /= n_toys
+    return ( n_pred, n_obs )

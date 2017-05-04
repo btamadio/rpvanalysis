@@ -1,7 +1,25 @@
 from __future__ import print_function
 import numpy as np
 class template:
-    def __init__(self,n_bins,df_temps,temp_bin,x_min=-7,x_max=0):
+    def __init__(self):
+        pass
+    def set_from_hist(self,hist):
+        self.bin_edges = np.zeros( hist.GetNbinsX() + 1 )
+        self.probs = np.zeros( hist.GetNbinsX() )
+        self.sumw = np.zeros( hist.GetNbinsX() )
+        self.sumw2 = np.zeros( hist.GetNbinsX() )
+
+        self.bin_centers = np.zeros( hist.GetNbinsX() )
+
+        for i in range(hist.GetNbinsX()):
+            self.bin_edges[i] =  hist.GetBinLowEdge(i+1)
+            self.bin_centers[i] = hist.GetBinCenter(i+1)
+            self.probs[i] = hist.GetBinContent(i+1)
+            self.sumw[i] = hist.GetBinContent(i+1)
+            self.sumw2[i] = np.square( hist.GetBinError(i+1) )
+        self.bin_edges[-1] = hist.GetBinLowEdge(hist.GetNbinsX()+1)
+
+    def set_from_df(self,n_bins,df_temps,temp_bin,x_min=-7,x_max=0):
         self.sumw_neg,bin_edges_neg=np.histogram(a=[],range=(x_min,x_max),bins=n_bins)
         self.sumw,self.bin_edges=np.histogram(a=[],range=(x_min,x_max),bins=n_bins)
         self.sumw2,self.bin_edges2=np.histogram(a=[],range=(x_min,x_max),bins=n_bins)

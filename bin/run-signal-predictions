@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+from rpvanalysis import rpvanalysis
+import json
+import sys
+
+if len(sys.argv) < 2:
+    print('Must specify configuration file.')
+    sys.exit(1)
+print(sys.argv[1])
+
+with open(sys.argv[1]) as f:
+    config = json.load(f)
+
+a = rpvanalysis.analyzer()
+
+a.date=config['date']
+a.job_name=config['job_name']
+a.web_path = config['web_path']
+a.hist_path = config['hist_path']
+a.make_plot_dir()
+a.read_sig_from_csv(config['sig_file'])
+a.drop_2jet_events()
+a.drop_3jet_events()
+a.compute_temp_bins()
+a.read_templates(config['templates_file'])
+a.verify_templates()
+
+if not 'template_type' in config:
+    config['template_type'] = 0
+else:
+    a.template_type = config['template_type']
+
+if 'n_toys' in config:
+    a.compute_dressed_masses(config['n_toys'])
+else:
+    a.compute_dressed_masses(100)
+
+a.compute_dressed_MJ_nom()
+a.make_dressed_MJ_df()
+
+dsid_list = sorted(a.sig_df.mcChannelNumber.unique())
+for dsid in dsid_list:
+    a.get_signal_pred('5jSRb1',dsid)
