@@ -2,9 +2,7 @@
 
 This project implements the 13 TeV RPV SUSY Multijet background prediction algorithm. 
 
-## Getting started
-
-### Installation instructions on PDSF
+## Installation instructions on PDSF
 ```
 git clone https://github.com/btamadio/rpvanalysis.git
 
@@ -15,16 +13,24 @@ conda create --name rpv_susy numpy
 source activate rpv_susy
 
 pip install -e .
-```
-## Running the analysis
+``
+Each time you relog, you'll have to re-run these two lines:
 
-### Configuration files
+```
+module load python/2.7-anaconda
+
+source activate rpv_susy
+```
+
+# Running the analysis
+
+## Configuration files
 
 Example Configuration files are located in config/examples
 
 Config files are in json format (double quotes for strings) and have some required entries, depending on which version of the analysis you want to run.
 
-#### baseline analysis with data
+### baseline analysis with data
 
 Example config file: `config_data.py`
 
@@ -54,7 +60,7 @@ Required entries:
 
 `blinded`: Whether or not to blind the observation above MJ_cut in SRs
 
-#### baseline analysis with MC
+### baseline analysis with MC
 
 Example config file: `config_MC.py`
 
@@ -82,7 +88,7 @@ Required entries:
 
 `MJ_cut` : Value of MJ cut that defines signal region (TeV)
 
-#### baseline analysis with signal MC injected into data
+### baseline analysis with signal MC injected into data
 
 Example config file: `config_signal_injection.py`
 
@@ -118,7 +124,7 @@ Required entries:
 
 `blinded`: true to blind SRs above MJ_cut
 
-#### Generate predictions and observed yields from signal MC *only*
+### Generate predictions and observed yields from signal MC *only*
 
 Example config file: `config_signal_only.py`
 
@@ -138,21 +144,21 @@ Required entries:
 
 `scale_factor_file`: location of .csv file containing the scale factors, i.e. scale_factors.csv from baseline analysis
 
-### How to run
+## Running the code
 
-#### baseline analysis or signal-injected analysis:
+### baseline analysis or signal-injected analysis:
 
 ```
 bin/run-2jet-analysis <config_file>
 ```
 
-#### make predictions from signal MC only
+### make predictions from signal MC only
 
 ```
 bin/run-signal-predictions <config_file>
 ```
 
-### Making input .csv files
+## Making input .csv files
 
 The input files are in .csv format, and can be created from a root file using the following:
 
@@ -162,7 +168,7 @@ bin/convert <input_root_file> <output_csv_file>
 
 The input root file must contain a TTree at the top level called "miniTree" with the following branches:
 
-#### scalars
+### scalars
 
 `eventNumber`
 
@@ -190,9 +196,9 @@ The input root file must contain a TTree at the top level called "miniTree" with
 
 `jet_bmatched_Fix70`
 
-### Outputs
+## Outputs
 
-#### Baseline analysis
+### Baseline analysis
 
 `histograms.root` : templates and MJ histograms
 
@@ -214,7 +220,7 @@ The input root file must contain a TTree at the top level called "miniTree" with
 (pt_bin_2,eta_bin_4),
 (pt_bin_3,eta_bin_4)]
 
-#### signal-only-predictions
+### signal-only-predictions
 
 `signal_predictions.csv` : columns are : MJ_cut, region, DSID, n_predicted, n_observed
 
