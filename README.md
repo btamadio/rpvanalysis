@@ -56,9 +56,11 @@ Required entries:
 
 `MJ_plots`: List of regions for which to produce MJ plots
 
-`MJ_cut` : Value of MJ cut that defines signal region (TeV)
+`MJ_cut` : Value of MJ cut that defines SR - used to calculated predicted and observed yields
 
-`blinded`: Whether or not to blind the observation above MJ_cut in SRs
+`blinded`: Whether or not to blind the plots above MJ_blind in SRs
+
+`MJ_blind` : If blinded == true, specify the MJ cut above which to blind the plots
 
 ### baseline analysis with MC
 
