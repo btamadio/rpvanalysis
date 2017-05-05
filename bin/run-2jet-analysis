@@ -67,6 +67,9 @@ for region_str in response_list:
 if not 'blinded' in config:
     config['blinded'] = False
 
+else:
+    a.MJ_blind = config['MJ_blind']
+
 a.drop_3jet_events()
     
 if 'MJ_plots' in config:

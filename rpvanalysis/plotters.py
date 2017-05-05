@@ -275,7 +275,7 @@ def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_labe
     h2.Write()
     return(h1,h2)
 
-def plot_MJ(MJ_hists,scale_factor,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
+def plot_MJ(MJ_hists,scale_factor,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_blind):
     kin_sumw,kin_sumw2,dress_nom_matrix,dress_syst_matrix = MJ_hists
 
 
@@ -305,7 +305,7 @@ def plot_MJ(MJ_hists,scale_factor,plot_path,canvas,region_str,MJ_bins,lumi_label
 
     for i in range(n_bins):
         bin = i+1
-        if blinded and kin_hist.GetBinLowEdge(bin) >= MJ_cut:
+        if blinded and kin_hist.GetBinLowEdge(bin) >= MJ_blind:
             kin_hist.SetBinContent(bin,0)
             kin_hist.SetBinError( bin,0)
         else:
@@ -643,7 +643,7 @@ def make_webpage(plot_path):
 
         f.write('</TABLE></HTML>')
         
-def plot_MJ_shifts(MJ_hists,low_pt,scale_factor,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_cut):
+def plot_MJ_shifts(MJ_hists,low_pt,scale_factor,plot_path,canvas,region_str,MJ_bins,lumi_label,mc_label,blinded,MJ_blind):
     kin_sumw,kin_sumw2,dress_nom_matrix,dress_syst_matrix = MJ_hists
 
     n_systs = 2
@@ -682,7 +682,7 @@ def plot_MJ_shifts(MJ_hists,low_pt,scale_factor,plot_path,canvas,region_str,MJ_b
 
     for i in range(n_bins):
         bin = i+1
-        if blinded and kin_hist.GetBinLowEdge(bin) >= MJ_cut:
+        if blinded and kin_hist.GetBinLowEdge(bin) >= MJ_blind:
             kin_hist.SetBinContent(bin,0)
             kin_hist.SetBinError(bin,0)
         else:

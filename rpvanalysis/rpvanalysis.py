@@ -24,6 +24,7 @@ class analyzer:
         self.lumi_label = '36.5'
         self.mc_lumi = 36.45
         self.MJ_cut = 0.8
+        self.MJ_blind = 0.6
         self.n_template_bins = 50
         self.template_min = -7
         self.template_max = 0
@@ -379,8 +380,8 @@ class analyzer:
         if self.canvas is None:
             can_name = 'can'+plotters.get_random_string()
             self.canvas = ROOT.TCanvas(can_name,can_name,800,800)
-        result[0] =  plotters.plot_MJ_shifts(MJ_hists,True,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
-        result[1] =  plotters.plot_MJ_shifts(MJ_hists,False,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
+        result[0] =  plotters.plot_MJ_shifts(MJ_hists,True,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_blind)
+        result[1] =  plotters.plot_MJ_shifts(MJ_hists,False,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_blind)
 
         err_hist = result[0][2]
         dressed_hist_low_pt_up = result[0][3]
@@ -424,7 +425,7 @@ class analyzer:
         sr_yields = jitfunctions.apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_cut)
         self.write_sr_yields(region_str,sr_yields,blinded)
         print(sr_yields)
-        result =  plotters.plot_MJ(MJ_hists,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_cut)
+        result =  plotters.plot_MJ(MJ_hists,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_blind)
 
         kin_hist = result[0]
         dressed_hist = result[1]
