@@ -422,7 +422,7 @@ class analyzer:
         MJ_hists = jitfunctions.apply_get_MJ_hists(kin_MJ,self.dressed_MJ_nom[index],dressed_MJ_systs,weights,self.MJ_bins)
         scale_factor = self.get_scale_factor(index)
         self.write_scale_factor( region_str, scale_factor)
-        sr_yields = jitfunctions.apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_cut)
+        sr_yields = jitfunctions.apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,self.MJ_cut,scale_factor)
         self.write_sr_yields(region_str,sr_yields,blinded)
         print(sr_yields)
         result =  plotters.plot_MJ(MJ_hists,scale_factor,self.plot_path,self.canvas,region_str,self.MJ_bins,self.lumi_label,self.mc_label,blinded,self.MJ_blind)

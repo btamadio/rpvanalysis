@@ -176,7 +176,7 @@ def apply_get_MJ_hists(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,MJ_bins):
     return ( kin_sumw, kin_sumw2, dress_nom_matrix, dress_syst_matrix )
 
 @numba.jit(nopython=True)
-def apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,MJ_cut):
+def apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,MJ_cut,scale_factor):
     n_systs = dressed_MJ_systs.shape[0]
     n_events = dressed_MJ_systs.shape[1]
     n_toys = dressed_MJ_systs.shape[2]
@@ -231,6 +231,12 @@ def apply_get_SR_yields(kin_MJ,dressed_MJ_nom,dressed_MJ_systs,weights,MJ_cut):
     elif n_systs == 4:
         pred_syst_1 = max( abs(pred_yield_syst[0] - pred_yield) , abs(pred_yield_syst[1] - pred_yield ))
         pred_syst_2 = max( abs(pred_yield_syst[2] - pred_yield) , abs(pred_yield_syst[3] - pred_yield ))
+    kin_sumw *= scale_factor
+    kin_uncert *= scale_factor
+    pred_yield *= scale_factor
+    pred_stat *= scale_factor
+    pred_syst_1 *= scale_factor
+    pred_syst_2 *= scale_factor
 
     return( kin_sumw, kin_uncert, pred_yield, pred_stat, pred_syst_1, pred_syst_2 )
 
