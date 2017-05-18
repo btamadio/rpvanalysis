@@ -85,7 +85,7 @@ def get_region_index(df,region_string,eta_bins):
     if region_string.startswith('UDR1'):
         region_string = '2jLJG400'+region_string[4:]
     elif region_string.startswith('UDR2'):
-        region_string = '4js1LJL400'+region_string[4:]
+        region_string = '4jxLJL400'+region_string[4:]
 
     mask = df['njet']>0
     njet=4
@@ -96,8 +96,11 @@ def get_region_index(df,region_string,eta_bins):
     elif region_string.startswith('3j'):
         mask = df['njet']==3
         njet=3
-    elif region_string.startswith('4j'):
+    elif region_string.startswith('4jx'):
         mask = df['njet']==4
+        njet=4
+    elif region_string.startswith('4j'):
+        mask = df['njet']>=4
         njet=4
     elif region_string.startswith('5j'):
         mask = df['njet']>=5

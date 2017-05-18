@@ -29,15 +29,17 @@ def get_region_label(region_str):
     if region_str.startswith('UDR1'):
         region_str = '2jLJG400'+region_str[4:]
     elif region_str.startswith('UDR2'):
-        region_str = '4js1LJL400'+region_str[4:]
+        region_str = '4jxLJL400'+region_str[4:]
     lines = []
-    if '2j' in region_str:
+    if region_str.startswith('2j'):
         lines.append('N_{jet} = 2')
-    elif '3j' in region_str:
+    elif region_str.startswith('3j'):
         lines.append('N_{jet} = 3')
-    elif '4j' in region_str:
+    elif region_str.startswith('4jx'):
         lines.append('N_{jet} = 4')
-    elif '5j' in region_str:
+    elif region_str.startswith('4j'):
+        lines.append('N_{jet} #geq 4')
+    elif region_str.startswith('5j'):
         lines.append('N_{jet} #geq 5')
     if 's0' in region_str:
         lines.append('N_{soft jet} = 0')
@@ -373,12 +375,12 @@ def plot_MJ(MJ_hists,scale_factor,plot_path,canvas,region_str,MJ_bins,lumi_label
     err_hist.GetYaxis().SetLabelFont(43)
     err_hist.GetYaxis().SetLabelSize(15)    
 
-    ROOT.ATLASLabel(0.35,0.85,'Internal',0.05,0.115,1)
+    ROOT.ATLASLabel(0.6,0.85,'Internal',0.05,0.115,1)
     lat = ROOT.TLatex()
     if mc_label:
-        lat.DrawLatexNDC(0.35,0.78,lumi_label+' fb^{-1} '+mc_label)
+        lat.DrawLatexNDC(0.6,0.78,lumi_label+' fb^{-1} '+mc_label)
     else:
-        lat.DrawLatexNDC(0.3,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
+        lat.DrawLatexNDC(0.55,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
     lat.DrawLatexNDC(0.24,0.28,get_region_label(region_str))
 
     leg = ROOT.TLegend(0.6,0.55,0.8,0.75)
@@ -733,12 +735,12 @@ def plot_MJ_shifts(MJ_hists,low_pt,scale_factor,plot_path,canvas,region_str,MJ_b
     err_hist.GetYaxis().SetLabelFont(43)
     err_hist.GetYaxis().SetLabelSize(15)    
 
-    ROOT.ATLASLabel(0.35,0.85,'Internal',0.05,0.115,1)
+    ROOT.ATLASLabel(0.6,0.85,'Internal',0.05,0.115,1)
     lat = ROOT.TLatex()
     if mc_label:
-        lat.DrawLatexNDC(0.35,0.78,lumi_label+' fb^{-1} '+mc_label)
+        lat.DrawLatexNDC(0.6,0.78,lumi_label+' fb^{-1} '+mc_label)
     else:
-        lat.DrawLatexNDC(0.3,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
+        lat.DrawLatexNDC(0.55,0.78,'#sqrt{s} = 13 TeV, '+lumi_label+' fb^{-1}')
     lat.DrawLatexNDC(0.24,0.28,get_region_label(region_str))
 
     leg = ROOT.TLegend(0.6,0.55,0.8,0.75)
