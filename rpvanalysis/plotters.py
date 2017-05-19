@@ -150,11 +150,16 @@ def plot_template_stats(templates,plot_path,canvas,canvas2,lumi_label,mc_label,p
         t.DrawText(0.195,eta_bin,str(eta_bin))
         l.DrawLine(pt_bins[0],eta_bin,pt_bins[-1],eta_bin)
     c0.Update()
+    c0.Print(plot_path+'templates/plot_template_stats_bU.eps')
     c0.Print(plot_path+'templates/plot_template_stats_bU.png')
     c0.Print(plot_path+'templates/plot_template_stats_bU.pdf')
+    c0.Print(plot_path+'templates/plot_template_stats_bU.C')
+
     c1.Update()
+    c1.Print(plot_path+'templates/plot_template_stats_bM.eps')
     c1.Print(plot_path+'templates/plot_template_stats_bM.png')
     c1.Print(plot_path+'templates/plot_template_stats_bM.pdf')
+    c1.Print(plot_path+'templates/plot_template_stats_bM.C')
 
     return(c0,c1,h0,h1,t,l)
 
@@ -197,8 +202,7 @@ def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_labe
     h1.Draw('e ')
     h2.Draw('e same')
 
-    file_name = 'plot_template_'+str(temp_bin)+'.png'
-    file_name_pdf = 'plot_template_'+str(temp_bin)+'.pdf'
+    file_name = 'plot_template_'+str(temp_bin)
     full_path = plot_path.rstrip('/')+'/templates/'
     ROOT.ATLASLabel(0.25,0.85,'Internal',0.05,0.115,1)
 
@@ -268,9 +272,12 @@ def plot_template_compare(temp_1,temp_2,template_type,plot_path,canvas,lumi_labe
     ratio_hist.SetMinimum(0.0)
     ratio_hist.SetMaximum(1.7)
 
-    print('Saving plot to %s'%full_path+file_name)
-    canvas.Print(full_path+file_name)
-    canvas.Print(full_path+file_name_pdf)
+    print('Saving plot to %s'%full_path+file_name+'.png')
+    canvas.Print(full_path+file_name+'.C')
+    canvas.Print(full_path+file_name+'.png')
+    canvas.Print(full_path+file_name+'.pdf')
+    canvas.Print(full_path+file_name+'.eps')
+
     os.system('chmod a+r ' + full_path+'*')
     out_file.cd()
     h1.Write()
@@ -461,12 +468,16 @@ def plot_MJ(MJ_hists,scale_factor,plot_path,canvas,region_str,MJ_bins,lumi_label
 
     canvas.cd()
     canvas.Update()
-    file_name = 'plot_MJ.png'
-    file_name_pdf = 'plot_MJ.pdf'
+    file_name = 'plot_MJ'
     full_path = plot_path.rstrip('/')+'/'+region_str+'/'
-    print('Saving plot to %s'%full_path+file_name)
-    canvas.Print(full_path+file_name)
-    canvas.Print(full_path+file_name_pdf)
+    print('Saving plot to %s'%full_path+file_name+'.png')
+
+    canvas.Print(full_path+file_name+'.C')
+    canvas.Print(full_path+file_name+'.png')
+    canvas.Print(full_path+file_name+'.pdf')
+    canvas.Print(full_path+file_name+'.eps')
+
+
     os.system('chmod a+r ' + full_path+'*')
     return return_list 
 
@@ -585,13 +596,14 @@ def plot_response(response,plot_path,canvas,region_str,pt_bins,eta_bins,lumi_lab
 
     return_list = [dressed_hist,kin_hist,ratio_hist,lat,leg]
 
-    file_name = 'plot_mass_response.png'
-    file_name_pdf = 'plot_mass_response.pdf'
+    file_name = 'plot_mass_response'
     full_path = plot_path+'/'+region_str+'/'+file_name
-    full_path_pdf = plot_path+'/'+region_str+'/'+file_name_pdf
+
     print('Saving plot to %s'%full_path)
-    canvas.Print(full_path)
-    canvas.Print(full_path_pdf)
+    canvas.Print(full_path+'.C')
+    canvas.Print(full_path+'.png')
+    canvas.Print(full_path+'.pdf')
+    canvas.Print(full_path+'.eps')
     os.system('chmod a+r %s/%s/*' % (plot_path,region_str))
     return [dressed_hist,kin_hist,ratio_hist,lat,leg]
 
@@ -822,14 +834,14 @@ def plot_MJ_shifts(MJ_hists,low_pt,scale_factor,plot_path,canvas,region_str,MJ_b
 
     canvas.cd()
     canvas.Update()
-    file_name = 'plot_MJ_shift_high_pt.png'
-    file_name_pdf = 'plot_MJ_shift_high_pt.pdf'
+    file_name = 'plot_MJ_shift_high_pt'
     if low_pt:
-        file_name = 'plot_MJ_shift_low_pt.png'
-        file_name_pdf = 'plot_MJ_shift_low_pt.pdf'
+        file_name = 'plot_MJ_shift_low_pt'
     full_path = plot_path.rstrip('/')+'/'+region_str+'/'
-    print('Saving plot to %s'%full_path+file_name)
-    canvas.Print(full_path+file_name)
-    canvas.Print(full_path+file_name_pdf)
+    print('Saving plot to %s'%full_path+file_name+'.png')
+    canvas.Print(full_path+file_name+'.C')
+    canvas.Print(full_path+file_name+'.png')
+    canvas.Print(full_path+file_name+'.pdf')
+    canvas.Print(full_path+file_name+'.eps')
     os.system('chmod a+r ' + full_path+'*')
     return return_list 
